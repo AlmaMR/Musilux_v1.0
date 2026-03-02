@@ -3,6 +3,11 @@ import 'theme/colors.dart';
 import 'screens/home_screen.dart';
 import 'screens/vinyls_screen.dart';
 import 'screens/product_detail_screen.dart';
+import 'screens/instruments_screen.dart';
+import 'screens/lighting_screen.dart';
+import 'screens/contact_screen.dart';
+import 'screens/search_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const MusiluxApp());
@@ -39,6 +44,11 @@ class MusiluxApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/vinilos': (context) => const VinylsScreen(),
         '/detalle-producto': (context) => const ProductDetailScreen(),
+        '/instrumentos': (context) => const InstrumentsScreen(),
+        '/iluminacion': (context) => const LightingScreen(),
+        '/contacto': (context) => const ContactScreen(),
+        '/buscar': (context) => const SearchScreen(),
+        '/perfil': (context) => const ProfileScreen(),
       },
     );
   }
