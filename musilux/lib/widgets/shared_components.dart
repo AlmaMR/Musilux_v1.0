@@ -11,6 +11,7 @@ class BaseLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const NavDrawer(),
       endDrawer: const CartDrawer(),
       body: Column(
         children: [
@@ -31,12 +32,19 @@ class CustomHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
     return Container(
       height: 70,
       color: AppColors.headerBg,
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
       child: Row(
         children: [
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
           // Logo
           MouseRegion(
             cursor: SystemMouseCursors.click,
@@ -53,19 +61,30 @@ class CustomHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Links de Navegación
-          _NavBarItem(title: 'Instrumentos', onTap: () {}),
-          _NavBarItem(title: 'Iluminación', onTap: () {}),
-          _NavBarItem(
-            title: 'Vinilos',
-            onTap: () => Navigator.pushNamed(context, '/vinilos'),
-          ),
-          _NavBarItem(title: 'Contacto', onTap: () {}),
-          const SizedBox(width: 20),
+          // Links de Navegación (SOLO MUESTRA EN PANTALLAS GRANDES)
+          if (!isMobile) ...[
+            _NavBarItem(
+              title: 'Instrumentos',
+              onTap: () => Navigator.pushNamed(context, '/instrumentos'),
+            ),
+            _NavBarItem(
+              title: 'Iluminación',
+              onTap: () => Navigator.pushNamed(context, '/iluminacion'),
+            ),
+            _NavBarItem(
+              title: 'Vinilos',
+              onTap: () => Navigator.pushNamed(context, '/vinilos'),
+            ),
+            _NavBarItem(
+              title: 'Contacto',
+              onTap: () => Navigator.pushNamed(context, '/contacto'),
+            ),
+            const SizedBox(width: 20),
+          ],
           // Iconos
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white70),
-            onPressed: () {},
+            onPressed: () => Navigator.pushNamed(context, '/buscar'),
           ),
           IconButton(
             icon: const Icon(
@@ -78,7 +97,7 @@ class CustomHeader extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white70),
-            onPressed: () {},
+            onPressed: () => Navigator.pushNamed(context, '/perfil'),
           ),
         ],
       ),
@@ -134,6 +153,69 @@ class CustomFooter extends StatelessWidget {
 }
 
 // ==========================================
+// MENÚ DE NAVEGACIÓN MÓVIL (Drawer)
+// ==========================================
+class NavDrawer extends StatelessWidget {
+  const NavDrawer({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: AppColors.headerBg),
+            child: Center(
+              child: Text(
+                'Musilux',
+                style: TextStyle(
+                  color: AppColors.primaryPurple,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.music_note),
+            title: const Text('Instrumentos'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/instrumentos');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.lightbulb_outline),
+            title: const Text('Iluminación'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/iluminacion');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.album),
+            title: const Text('Vinilos'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/vinilos');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.mail_outline),
+            title: const Text('Contacto'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/contacto');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
 // TARJETAS DE PRODUCTO Y CATEGORÍA
 // ==========================================
 
@@ -141,45 +223,82 @@ class CategoryCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String imageUrl;
+  final VoidCallback onTap;
+  final double? width;
 
   const CategoryCard({
     Key? key,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
+    required this.onTap,
+    this.width,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: width,
       height: 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        image: DecorationImage(
-          image: NetworkImage(imageUrl),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.4),
-            BlendMode.darken,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
           ),
-        ),
+        ],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            // Imagen de fondo con respaldo en caso de error
+            Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey.shade800,
+                  child: const Icon(
+                    Icons.album,
+                    color: Colors.white54,
+                    size: 50,
+                  ),
+                );
+              },
+            ),
+            // Filtro oscuro para resaltar el texto
+            Container(color: Colors.black.withOpacity(0.4)),
+            // Textos
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            // Efecto Click (Ripple) que cubre toda la tarjeta
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(onTap: onTap),
+              ),
             ),
           ],
         ),
