@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
 // ==========================================
-// LAYOUT BASE (Header, Footer, Drawers)
+// LAYOUT BASE
 // ==========================================
 class BaseLayout extends StatelessWidget {
   final Widget child;
@@ -34,6 +34,12 @@ class BaseLayout extends StatelessWidget {
 class CustomHeader extends StatelessWidget {
   const CustomHeader({Key? key}) : super(key: key);
 
+  void _showSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 800;
@@ -54,7 +60,7 @@ class CustomHeader extends StatelessWidget {
             child: GestureDetector(
               onTap: () {
                 if (ModalRoute.of(context)?.settings.name != '/') {
-                  Navigator.pushNamed(context, '/');
+                  Navigator.pushReplacementNamed(context, '/');
                 }
               },
               child: const Text(
@@ -90,7 +96,7 @@ class CustomHeader extends StatelessWidget {
           ],
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white70),
-            onPressed: () => Navigator.pushNamed(context, '/busqueda'),
+            onPressed: () => _showSnack(context, 'Buscador en desarrollo'),
           ),
           IconButton(
             icon: const Icon(
@@ -164,7 +170,7 @@ class CustomFooter extends StatelessWidget {
 }
 
 // ==========================================
-// MENÚ DE NAVEGACIÓN MÓVIL (Drawer Izquierdo)
+// MENÚ DE NAVEGACIÓN MÓVIL (Drawer)
 // ==========================================
 class NavDrawer extends StatelessWidget {
   const NavDrawer({Key? key}) : super(key: key);
@@ -189,6 +195,14 @@ class NavDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Inicio'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.music_note),
             title: const Text('Instrumentos'),
             onTap: () {
@@ -210,6 +224,14 @@ class NavDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/vinilos');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.mail),
+            title: const Text('Contacto'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/contacto');
             },
           ),
         ],
@@ -330,7 +352,7 @@ class CategoryCard extends StatelessWidget {
 }
 
 // ==========================================
-// TARJETA DE PRODUCTO (Corrección de diseño)
+// TARJETA DE PRODUCTO
 // ==========================================
 class ProductCard extends StatelessWidget {
   final String title;
@@ -352,9 +374,8 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Retornamos un Container que se adapta maravillosamente a GridView o ListView
     return Container(
-      width: 260, // Ancho fijo para cuando está en la lista horizontal (Home)
+      width: 260,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -367,11 +388,8 @@ class ProductCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch, // Estira los elementos horizontalmente
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Expanded hace que la imagen tome TODO el espacio sobrante disponible
-          // evitando que se estire feo o se salga de la tarjeta
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(
@@ -390,14 +408,11 @@ class ProductCard extends StatelessWidget {
               ),
             ),
           ),
-
-          // Contenedor inferior de información (Altura adaptable al texto)
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize:
-                  MainAxisSize.min, // Vital para no aplastar la imagen
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
@@ -409,8 +424,6 @@ class ProductCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
-
-                // Etiquetas
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
@@ -438,8 +451,6 @@ class ProductCard extends StatelessWidget {
                       .toList(),
                 ),
                 const SizedBox(height: 10),
-
-                // Precio
                 Text(
                   '\$${price.toStringAsFixed(2)}',
                   style: TextStyle(
@@ -451,19 +462,16 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                // Botones alineados y limpios
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Agregado al carrito'),
+                        onPressed: () =>
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Agregado al carrito'),
+                              ),
                             ),
-                          );
-                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryPurple,
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -481,7 +489,7 @@ class ProductCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: onDetailsTap,
+                        onPressed: onDetailsTap, // Redirige al detalle
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           side: const BorderSide(

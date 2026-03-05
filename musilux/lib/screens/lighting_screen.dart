@@ -10,7 +10,6 @@ class LightingScreen extends StatefulWidget {
 }
 
 class _LightingScreenState extends State<LightingScreen> {
-  // Variables de estado para los filtros
   String _selectedCategory = 'Todos';
   String _selectedSort = 'Recomendados';
 
@@ -33,7 +32,6 @@ class _LightingScreenState extends State<LightingScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 800;
 
-    // Calcular columnas
     int crossAxisCount = 4;
     if (screenWidth < 600)
       crossAxisCount = 1;
@@ -42,13 +40,11 @@ class _LightingScreenState extends State<LightingScreen> {
     else if (screenWidth < 1200)
       crossAxisCount = 3;
 
-    // 1. Filtrar lista
     var filteredProducts = _iluminacionProducts.where((product) {
       if (_selectedCategory == 'Todos') return true;
       return (product['tags'] as List).contains(_selectedCategory);
     }).toList();
 
-    // 2. Ordenar lista
     if (_selectedSort == 'Precio: Menor a Mayor') {
       filteredProducts.sort(
         (a, b) => (a['price'] as double).compareTo(b['price'] as double),
@@ -68,14 +64,17 @@ class _LightingScreenState extends State<LightingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // TÍTULO Y DESCRIPCIÓN
             const Text(
-              'Equipos de Iluminación',
+              'Equipos de Iluminación y FX',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Enciende tu escenario con nuestra mejor selección de luces.',
+              style: TextStyle(fontSize: 16, color: Colors.black54),
             ),
             const SizedBox(height: 30),
 
-            // BARRA DE FILTROS Y ORDENAMIENTO
             if (isMobile)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +97,6 @@ class _LightingScreenState extends State<LightingScreen> {
 
             const SizedBox(height: 30),
 
-            // GRID DE PRODUCTOS (Con proporciones corregidas)
             filteredProducts.isEmpty
                 ? const Center(
                     child: Padding(
@@ -116,8 +114,7 @@ class _LightingScreenState extends State<LightingScreen> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 20,
                       mainAxisSpacing: 20,
-                      childAspectRatio:
-                          0.72, // Relación de aspecto perfecta para la ProductCard
+                      childAspectRatio: 0.72,
                     ),
                     itemCount: filteredProducts.length,
                     itemBuilder: (context, index) {
@@ -129,7 +126,7 @@ class _LightingScreenState extends State<LightingScreen> {
                         imageUrl: item['image'],
                         isSale: item['isSale'],
                         onDetailsTap: () =>
-                            Navigator.pushNamed(context, '/producto/detalle'),
+                            Navigator.pushNamed(context, '/detalle'),
                       );
                     },
                   ),
@@ -139,7 +136,6 @@ class _LightingScreenState extends State<LightingScreen> {
     );
   }
 
-  // WIDGET: Lista horizontal de etiquetas (Chips)
   Widget _buildFilterChips() {
     return Wrap(
       spacing: 8,
@@ -164,7 +160,6 @@ class _LightingScreenState extends State<LightingScreen> {
     );
   }
 
-  // WIDGET: ComboBox de Ordenar por
   Widget _buildSortDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -210,7 +205,6 @@ class _LightingScreenState extends State<LightingScreen> {
   }
 }
 
-// Lista de datos para los productos de iluminación
 final List<Map<String, dynamic>> _iluminacionProducts = [
   {
     'title': 'Cabeza Móvil Beam 230W',
@@ -258,30 +252,6 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'tags': ['Control', 'Profesional'],
     'image':
         '[https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600](https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600)',
-    'isSale': false,
-  },
-  {
-    'title': 'Luz Estroboscópica 1000W',
-    'price': 2100.00,
-    'tags': ['Estrobo', 'Discoteca'],
-    'image':
-        '[https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600](https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600)',
-    'isSale': false,
-  },
-  {
-    'title': 'Esfera de Espejos 30cm',
-    'price': 450.00,
-    'tags': ['Clásico', 'Discoteca'],
-    'image':
-        '[https://images.unsplash.com/photo-1574169208507-84376144848b?w=600](https://images.unsplash.com/photo-1574169208507-84376144848b?w=600)',
-    'isSale': true,
-  },
-  {
-    'title': 'Máquina de Burbujas',
-    'price': 800.00,
-    'tags': ['FX', 'Fiesta'],
-    'image':
-        '[https://images.unsplash.com/photo-1516280440502-861033c4eb89?w=600](https://images.unsplash.com/photo-1516280440502-861033c4eb89?w=600)',
     'isSale': false,
   },
 ];
