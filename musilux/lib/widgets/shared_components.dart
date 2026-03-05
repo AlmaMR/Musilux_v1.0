@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
 // ==========================================
-// LAYOUT BASE (Header, Footer, Drawer)
+// LAYOUT BASE (Header, Footer, Drawers)
 // ==========================================
 class BaseLayout extends StatelessWidget {
   final Widget child;
@@ -11,6 +11,7 @@ class BaseLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: const NavDrawer(),
       endDrawer: const CartDrawer(),
       body: Column(
@@ -27,6 +28,9 @@ class BaseLayout extends StatelessWidget {
   }
 }
 
+// ==========================================
+// ENCABEZADO (Header y Barra de Navegación)
+// ==========================================
 class CustomHeader extends StatelessWidget {
   const CustomHeader({Key? key}) : super(key: key);
 
@@ -45,23 +49,26 @@ class CustomHeader extends StatelessWidget {
               icon: const Icon(Icons.menu, color: Colors.white),
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
-          // Logo
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: () => Navigator.pushReplacementNamed(context, '/'),
+              onTap: () {
+                if (ModalRoute.of(context)?.settings.name != '/') {
+                  Navigator.pushNamed(context, '/');
+                }
+              },
               child: const Text(
                 'Musilux',
                 style: TextStyle(
                   color: AppColors.primaryPurple,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
             ),
           ),
           const Spacer(),
-          // Links de Navegación (SOLO MUESTRA EN PANTALLAS GRANDES)
           if (!isMobile) ...[
             _NavBarItem(
               title: 'Instrumentos',
@@ -81,19 +88,16 @@ class CustomHeader extends StatelessWidget {
             ),
             const SizedBox(width: 20),
           ],
-          // Iconos
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white70),
-            onPressed: () => Navigator.pushNamed(context, '/buscar'),
+            onPressed: () => Navigator.pushNamed(context, '/busqueda'),
           ),
           IconButton(
             icon: const Icon(
               Icons.shopping_cart_outlined,
               color: Colors.white70,
             ),
-            onPressed: () {
-              Scaffold.of(context).openEndDrawer();
-            },
+            onPressed: () => Scaffold.of(context).openEndDrawer(),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white70),
@@ -115,33 +119,40 @@ class _NavBarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: TextButton(
-        onPressed: onTap,
-        child: Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Text(
+            title,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
         ),
       ),
     );
   }
 }
 
+// ==========================================
+// PIE DE PÁGINA (Footer)
+// ==========================================
 class CustomFooter extends StatelessWidget {
   const CustomFooter({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 30),
-      alignment: Alignment.center,
+      width: double.infinity,
+      color: Colors.transparent,
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       child: const Column(
         children: [
           Text(
             'Contacto: info@musilux.com | Tel: 311 123 8040',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: Colors.black87),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: 8),
           Text(
             'Enlaces Útiles: Términos y Condiciones | Política de Privacidad',
             style: TextStyle(fontSize: 12, color: Colors.black54),
@@ -153,7 +164,7 @@ class CustomFooter extends StatelessWidget {
 }
 
 // ==========================================
-// MENÚ DE NAVEGACIÓN MÓVIL (Drawer)
+// MENÚ DE NAVEGACIÓN MÓVIL (Drawer Izquierdo)
 // ==========================================
 class NavDrawer extends StatelessWidget {
   const NavDrawer({Key? key}) : super(key: key);
@@ -201,13 +212,38 @@ class NavDrawer extends StatelessWidget {
               Navigator.pushNamed(context, '/vinilos');
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.mail_outline),
-            title: const Text('Contacto'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/contacto');
-            },
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// CARRITO DE COMPRAS (Drawer Derecho)
+// ==========================================
+class CartDrawer extends StatelessWidget {
+  const CartDrawer({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.grey.shade100,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 40, bottom: 20),
+            child: Text(
+              'Carrito de compras',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                'Carrito vacío',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
           ),
         ],
       ),
@@ -216,9 +252,8 @@ class NavDrawer extends StatelessWidget {
 }
 
 // ==========================================
-// TARJETAS DE PRODUCTO Y CATEGORÍA
+// TARJETA DE CATEGORÍA
 // ==========================================
-
 class CategoryCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -238,7 +273,7 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
+      width: width ?? 300,
       height: 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -255,24 +290,12 @@ class CategoryCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Imagen de fondo con respaldo en caso de error
             Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.album,
-                    color: Colors.white54,
-                    size: 50,
-                  ),
-                );
-              },
+              errorBuilder: (c, e, s) => Container(color: Colors.grey),
             ),
-            // Filtro oscuro para resaltar el texto
             Container(color: Colors.black.withOpacity(0.4)),
-            // Textos
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -293,7 +316,6 @@ class CategoryCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Efecto Click (Ripple) que cubre toda la tarjeta
             Positioned.fill(
               child: Material(
                 color: Colors.transparent,
@@ -307,12 +329,16 @@ class CategoryCard extends StatelessWidget {
   }
 }
 
+// ==========================================
+// TARJETA DE PRODUCTO (Corrección de diseño)
+// ==========================================
 class ProductCard extends StatelessWidget {
   final String title;
   final double price;
   final String imageUrl;
   final List<String> tags;
   final VoidCallback onDetailsTap;
+  final bool isSale;
 
   const ProductCard({
     Key? key,
@@ -321,52 +347,70 @@ class ProductCard extends StatelessWidget {
     required this.imageUrl,
     required this.tags,
     required this.onDetailsTap,
+    this.isSale = false,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Retornamos un Container que se adapta maravillosamente a GridView o ListView
     return Container(
-      width: 300,
+      width: 260, // Ancho fijo para cuando está en la lista horizontal (Home)
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.stretch, // Estira los elementos horizontalmente
         children: [
-          // Imagen
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              imageUrl,
-              height: 250,
-              width: double.infinity,
-              fit: BoxFit.cover,
+          // Expanded hace que la imagen tome TODO el espacio sobrante disponible
+          // evitando que se estire feo o se salga de la tarjeta
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
             ),
           ),
+
+          // Contenedor inferior de información (Altura adaptable al texto)
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:
+                  MainAxisSize.min, // Vital para no aplastar la imagen
               children: [
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
-                // Tags
+                const SizedBox(height: 6),
+
+                // Etiquetas
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
@@ -374,389 +418,91 @@ class ProductCard extends StatelessWidget {
                       .map(
                         (tag) => Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                            horizontal: 6,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.tagBg,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.primaryPurple.withOpacity(0.3),
-                            ),
+                            color: AppColors.primaryPurple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             tag,
                             style: const TextStyle(
-                              fontSize: 10,
                               color: AppColors.primaryPurple,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       )
                       .toList(),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+
+                // Precio
                 Text(
                   '\$${price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.priceText,
+                    color: isSale
+                        ? Colors.orange.shade800
+                        : AppColors.primaryPurple,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Botones alineados y limpios
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add_shopping_cart, size: 16),
-                      label: const Text(
-                        'Agregar',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Agregado al carrito'),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryPurple,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        child: const Text(
+                          'Agregar',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                         ),
                       ),
                     ),
-                    OutlinedButton(
-                      onPressed: onDetailsTap,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryPurple,
-                        side: const BorderSide(color: AppColors.primaryPurple),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onDetailsTap,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          side: const BorderSide(
+                            color: AppColors.primaryPurple,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        child: const Text(
+                          'Detalles',
+                          style: TextStyle(
+                            color: AppColors.primaryPurple,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Ver Detalles',
-                        style: TextStyle(fontSize: 12),
                       ),
                     ),
                   ],
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ==========================================
-// CARRITO DE COMPRAS Y CHECKOUT
-// ==========================================
-
-class CartDrawer extends StatelessWidget {
-  const CartDrawer({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      width: 350,
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Carrito de compras',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                CloseButton(),
-              ],
-            ),
-            const Divider(),
-            Expanded(
-              child: ListView(
-                children: const [
-                  _CartItemMock(),
-                  _CartItemMock(),
-                  _CartItemMock(),
-                ],
-              ),
-            ),
-            const Divider(),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Subtotal', style: TextStyle(color: Colors.black54)),
-                Text(
-                  '\$5997.00',
-                  style: TextStyle(
-                    color: AppColors.primaryPurple,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Envio', style: TextStyle(color: Colors.black54)),
-                Text(
-                  'Gratis',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 30),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '\$5997.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Cierra el Drawer
-                  showDialog(
-                    context: context,
-                    builder: (_) => const CheckoutModal(),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Finalizar compra',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CartItemMock extends StatelessWidget {
-  const _CartItemMock({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: const DecorationImage(
-                image: NetworkImage(
-                  'https://images.unsplash.com/photo-1550291652-6ea9114a47b1?w=150',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Guitarra eléctrica popular para principiantes',
-                  style: TextStyle(fontSize: 12),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          InkWell(
-                            onTap: () {},
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('-'),
-                            ),
-                          ),
-                          const Text('1'),
-                          InkWell(
-                            onTap: () {},
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('+'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      '\$1999.00',
-                      style: TextStyle(
-                        color: AppColors.primaryPurple,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-        ],
-      ),
-    );
-  }
-}
-
-class CheckoutModal extends StatefulWidget {
-  const CheckoutModal({Key? key}) : super(key: key);
-
-  @override
-  State<CheckoutModal> createState() => _CheckoutModalState();
-}
-
-class _CheckoutModalState extends State<CheckoutModal> {
-  int _currentStep = 1;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Text(
-                'Paso $_currentStep de 2',
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Completar Compra',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            if (_currentStep == 1) ...[
-              _buildTextField(
-                'Calle y numero exterior o interior',
-                'Calle y numero',
-              ),
-              _buildTextField('Estado', 'Estado'),
-              _buildTextField('Municipio', 'Nayarit'),
-              _buildTextField('Codigo Postal', 'Codigo Postal'),
-              _buildTextField('Colonia', 'Colonia'),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => setState(() => _currentStep = 2),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Continuar'),
-                ),
-              ),
-            ] else ...[
-              _buildTextField('Numero de Tarjeta', 'xxxx-xxxx-xxxx-xxxx'),
-              _buildTextField('Nombre del Titular', 'nombre completo'),
-              _buildTextField('Fecha de Vencimiento', '4 digitos'),
-              _buildTextField('Codigo de Seguridad', '3 digitos'),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Cierra el modal
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('¡Compra realizada con éxito!'),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Pagar Ahora'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, String hint) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          TextField(
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: AppColors.primaryPurple.withOpacity(0.5),
-                fontSize: 14,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: AppColors.primaryPurple),
-              ),
             ),
           ),
         ],
