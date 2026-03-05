@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: const NetworkImage(
-                  '[https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1600](https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1600)',
+                  'https://scontent.fgdl9-1.fna.fbcdn.net/v/t39.30808-6/485421080_1090799343060869_8054663387557638822_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=110&ccb=1-7&_nc_sid=7b2446&_nc_ohc=5tu6MwW-JMgQ7kNvwHIPcSu&_nc_oc=Adk1glrbuPw9NLMwTsbyZdmbku8NrpmPY5ReBPZKHBu3FjjMAImLaHtLYAyNzFTOjDw&_nc_zt=23&_nc_ht=scontent.fgdl9-1.fna&_nc_gid=9QXx4Agu7CIfeQ8Vx_xTEg&_nc_ss=8&oh=00_AfxjQA8Ab-Rkis26mL-B0T7iTjckAOa3uIA59fzg--ZllQ&oe=69AFB2D9',
                 ),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
@@ -89,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                   title: 'Instrumentos',
                   subtitle: 'Guitarras, Bajos, Baterías',
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1514807498305-6453f61530e2?w=600](https://images.unsplash.com/photo-1514807498305-6453f61530e2?w=600)',
+                      'https://ortizo.com.co/cdn/shop/articles/INSTRUMENTOS.jpg?v=1736287757&width=1920',
                   onTap: () => Navigator.pushNamed(context, '/instrumentos'),
                 ),
                 const SizedBox(width: 16),
@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
                   title: 'Iluminación',
                   subtitle: 'Luces, Láser, Humo',
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600](https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600)',
+                      'https://m.media-amazon.com/images/I/81xXM5UvMhL._AC_UF350,350_QL80_.jpg',
                   onTap: () => Navigator.pushNamed(context, '/iluminacion'),
                 ),
                 const SizedBox(width: 16),
@@ -117,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                   title: 'Instrumentos',
                   subtitle: 'Guitarras, Bajos, Baterías',
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1514807498305-6453f61530e2?w=600](https://images.unsplash.com/photo-1514807498305-6453f61530e2?w=600)',
+                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlJUWXrueZ5TbCCOf0m3_CCQW2OVwsiHjR0g&s',
                   onTap: () => Navigator.pushNamed(context, '/instrumentos'),
                 ),
                 const SizedBox(width: 16),
@@ -126,7 +126,7 @@ class HomeScreen extends StatelessWidget {
                   title: 'Iluminación',
                   subtitle: 'Luces, Láser, Humo',
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600](https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600)',
+                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSg2Q254ZdlDEK0mCiDff8ODejXJzMC0SQf0Q&s',
                   onTap: () => Navigator.pushNamed(context, '/iluminacion'),
                 ),
                 const SizedBox(width: 16),
