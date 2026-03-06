@@ -171,7 +171,7 @@ class HomeScreen extends StatelessWidget {
                   price: 15499.00,
                   tags: ['Baterías', 'Oferta'],
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=600](https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=600)',
+                      'https://m.media-amazon.com/images/S/aplus-media-library-service-media/e04da6f5-c8dd-43a8-b82a-ef27cb61cec2.__CR0,0,600,600_PT0_SX300_V1___.png',
                   onDetailsTap: () =>
                       Navigator.pushNamed(context, '/producto/bateria'),
                 ),
@@ -182,7 +182,7 @@ class HomeScreen extends StatelessWidget {
                   price: 6200.00,
                   tags: ['Audio', 'DJ'],
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1571266028243-3716f02d2d2e?w=600](https://images.unsplash.com/photo-1571266028243-3716f02d2d2e?w=600)',
+                      'https://m.media-amazon.com/images/I/81O80Pn0ZsL._AC_UF1000,1000_QL80_.jpg',
                   onDetailsTap: () =>
                       Navigator.pushNamed(context, '/producto/dj'),
                 ),
@@ -193,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                   price: 9500.00,
                   tags: ['Guitarras', 'Acústica'],
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1550985543-f47f38aeea53?w=600](https://images.unsplash.com/photo-1550985543-f47f38aeea53?w=600)',
+                      'https://m.media-amazon.com/images/I/7115TB+TXeL.jpg',
                   onDetailsTap: () =>
                       Navigator.pushNamed(context, '/producto/taylor'),
                 ),
@@ -204,7 +204,7 @@ class HomeScreen extends StatelessWidget {
                   price: 299.99,
                   tags: ['Vinilo', 'Rock'],
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
+                      'https://m.media-amazon.com/images/I/81oDljdj-FL._UF1000,1000_QL80_.jpg',
                   onDetailsTap: () =>
                       Navigator.pushNamed(context, '/producto/sliver'),
                 ),
@@ -215,7 +215,7 @@ class HomeScreen extends StatelessWidget {
                   price: 8200.00,
                   tags: ['Teclados', 'Oferta'],
                   imageUrl:
-                      '[https://images.unsplash.com/photo-1552422535-c45813c61732?w=600](https://images.unsplash.com/photo-1552422535-c45813c61732?w=600)',
+                      'https://m.media-amazon.com/images/I/51Pm9zO5QIL._AC_UF350,350_QL80_.jpg',
                   onDetailsTap: () =>
                       Navigator.pushNamed(context, '/producto/teclado'),
                 ),

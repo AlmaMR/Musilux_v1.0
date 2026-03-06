@@ -210,8 +210,7 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'title': 'Guitarra Eléctrica Fender',
     'price': 18500.00,
     'tags': ['Guitarras', 'Profesional'],
-    'image':
-        '[https://images.unsplash.com/photo-1564186763535-ebb964f94349?w=600](https://images.unsplash.com/photo-1564186763535-ebb964f94349?w=600)',
+    'image': 'https://m.media-amazon.com/images/I/61aAV9OZz8L._AC_SY879_.jpg',
     'isSale': false,
   },
   {
@@ -219,15 +218,14 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'price': 15499.00,
     'tags': ['Baterías', 'Oferta'],
     'image':
-        '[https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=600](https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=600)',
+        'https://m.media-amazon.com/images/S/aplus-media-library-service-media/e04da6f5-c8dd-43a8-b82a-ef27cb61cec2.__CR0,0,600,600_PT0_SX300_V1___.png',
     'isSale': true,
   },
   {
     'title': 'Bajo Eléctrico Ibanez',
     'price': 7200.00,
     'tags': ['Bajos'],
-    'image':
-        '[https://images.unsplash.com/photo-1564186763535-ebb964f94349?w=600](https://images.unsplash.com/photo-1564186763535-ebb964f94349?w=600)',
+    'image': 'https://m.media-amazon.com/images/I/71KHUkwn3WL.jpg',
     'isSale': false,
   },
   {
@@ -235,15 +233,14 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'price': 8200.00,
     'tags': ['Teclados', 'Oferta'],
     'image':
-        '[https://images.unsplash.com/photo-1552422535-c45813c61732?w=600](https://images.unsplash.com/photo-1552422535-c45813c61732?w=600)',
+        'https://m.media-amazon.com/images/I/51Pm9zO5QIL._AC_UF350,350_QL80_.jpg',
     'isSale': true,
   },
   {
     'title': 'Guitarra Acústica Taylor',
     'price': 9500.00,
     'tags': ['Guitarras', 'Acústica'],
-    'image':
-        '[https://images.unsplash.com/photo-1550985543-f47f38aeea53?w=600](https://images.unsplash.com/photo-1550985543-f47f38aeea53?w=600)',
+    'image': 'https://m.media-amazon.com/images/I/7115TB+TXeL.jpg',
     'isSale': true,
   },
 ];

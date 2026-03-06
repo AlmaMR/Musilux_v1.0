@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
 // ==========================================
-// LAYOUT BASE
+// LAYOUT BASE (Header, Footer, Drawers)
 // ==========================================
 class BaseLayout extends StatelessWidget {
   final Widget child;
@@ -34,12 +34,6 @@ class BaseLayout extends StatelessWidget {
 class CustomHeader extends StatelessWidget {
   const CustomHeader({Key? key}) : super(key: key);
 
-  void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 800;
@@ -60,7 +54,7 @@ class CustomHeader extends StatelessWidget {
             child: GestureDetector(
               onTap: () {
                 if (ModalRoute.of(context)?.settings.name != '/') {
-                  Navigator.pushReplacementNamed(context, '/');
+                  Navigator.pushNamed(context, '/');
                 }
               },
               child: const Text(
@@ -94,10 +88,15 @@ class CustomHeader extends StatelessWidget {
             ),
             const SizedBox(width: 20),
           ],
+
+          // --- BOTÓN DE BUSCADOR FUNCIONAL ---
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white70),
-            onPressed: () => _showSnack(context, 'Buscador en desarrollo'),
+            onPressed: () {
+              showSearch(context: context, delegate: ProductSearchDelegate());
+            },
           ),
+
           IconButton(
             icon: const Icon(
               Icons.shopping_cart_outlined,
@@ -170,7 +169,7 @@ class CustomFooter extends StatelessWidget {
 }
 
 // ==========================================
-// MENÚ DE NAVEGACIÓN MÓVIL (Drawer)
+// MENÚ DE NAVEGACIÓN MÓVIL (Drawer Izquierdo)
 // ==========================================
 class NavDrawer extends StatelessWidget {
   const NavDrawer({Key? key}) : super(key: key);
@@ -195,14 +194,6 @@ class NavDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Inicio'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/');
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.music_note),
             title: const Text('Instrumentos'),
             onTap: () {
@@ -224,6 +215,15 @@ class NavDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/vinilos');
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/perfil');
             },
           ),
           ListTile(
@@ -466,12 +466,13 @@ class ProductCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () =>
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Agregado al carrito'),
-                              ),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Agregado al carrito'),
                             ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryPurple,
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -489,7 +490,9 @@ class ProductCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: onDetailsTap, // Redirige al detalle
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/detalle-producto');
+                        },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           side: const BorderSide(
@@ -515,6 +518,106 @@ class ProductCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ==========================================
+// DELEGADO DEL BUSCADOR (SearchDelegate)
+// ==========================================
+class ProductSearchDelegate extends SearchDelegate<String> {
+  // Simulación de productos en la tienda
+  final List<String> products = [
+    'Batería Acústica Yamaha',
+    'Controlador DJ Pioneer',
+    'Guitarra Acústica Taylor',
+    'Sliver - Nirvana (Vinilo)',
+    'Teclado Korg 61 Teclas',
+    'Cabeza Móvil Beam 230W',
+    'Láser RGB Animación',
+    'Máquina de Humo 1500W',
+    'Barra LED Ultravioleta UV',
+    'Par LED 54x3W RGBW',
+    'Controlador DMX 512',
+    'Luz Estroboscópica 1000W',
+  ];
+
+  @override
+  String get searchFieldLabel => 'Buscar en Musilux...';
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            query = '';
+          },
+        ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, '');
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final results = products
+        .where((p) => p.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          'No se encontraron resultados para "$query"',
+          style: const TextStyle(fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          leading: const Icon(Icons.music_note, color: AppColors.primaryPurple),
+          title: Text(results[index]),
+          onTap: () {
+            close(context, results[index]);
+            Navigator.pushNamed(context, '/producto_detalle');
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final suggestions = query.isEmpty
+        ? ['Guitarra', 'Luces LED', 'Vinilos Rock']
+        : products
+              .where((p) => p.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          leading: const Icon(Icons.search, color: Colors.grey),
+          title: Text(suggestions[index]),
+          onTap: () {
+            query = suggestions[index];
+            showResults(context);
+          },
+        );
+      },
     );
   }
 }
