@@ -54,9 +54,13 @@ class ContactScreen extends StatelessWidget {
                       );
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryPurpleHover,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('Enviar Mensaje'),
+                    child: const Text(
+                      'Enviar Mensaje',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
                 ),
               ],
