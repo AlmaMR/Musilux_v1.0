@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
-class VinylsScreen extends StatefulWidget {
-  const VinylsScreen({Key? key}) : super(key: key);
+class LightingScreen extends StatefulWidget {
+  const LightingScreen({Key? key}) : super(key: key);
 
   @override
-  State<VinylsScreen> createState() => _VinylsScreenState();
+  State<LightingScreen> createState() => _LightingScreenState();
 }
 
-class _VinylsScreenState extends State<VinylsScreen> {
+class _LightingScreenState extends State<LightingScreen> {
   String _selectedCategory = 'Todos';
   String _selectedSort = 'Recomendados';
 
   final List<String> _categories = [
     'Todos',
-    'Rock',
-    'Pop',
-    'Jazz',
-    'Clásica',
-    'Electrónica',
+    'LED',
+    'Láser',
+    'Humo',
+    'FX',
+    'Profesional',
   ];
   final List<String> _sortOptions = [
     'Recomendados',
@@ -40,7 +40,7 @@ class _VinylsScreenState extends State<VinylsScreen> {
     else if (screenWidth < 1200)
       crossAxisCount = 3;
 
-    var filteredProducts = _vinilosProducts.where((product) {
+    var filteredProducts = _iluminacionProducts.where((product) {
       if (_selectedCategory == 'Todos') return true;
       return (product['tags'] as List).contains(_selectedCategory);
     }).toList();
@@ -65,12 +65,12 @@ class _VinylsScreenState extends State<VinylsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Discos de Vinilo',
+              'Equipos de Iluminación y FX',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'La mejor calidad de audio analógico de tus artistas favoritos.',
+              'Enciende tu escenario con nuestra mejor selección de luces.',
               style: TextStyle(fontSize: 16, color: Colors.black54),
             ),
             const SizedBox(height: 30),
@@ -102,7 +102,7 @@ class _VinylsScreenState extends State<VinylsScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(40.0),
                       child: Text(
-                        'No hay discos en esta categoría',
+                        'No hay productos en esta categoría',
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ),
@@ -205,37 +205,53 @@ class _VinylsScreenState extends State<VinylsScreen> {
   }
 }
 
-final List<Map<String, dynamic>> _vinilosProducts = [
+final List<Map<String, dynamic>> _iluminacionProducts = [
   {
-    'title': 'Sliver - Nirvana',
-    'price': 299.99,
-    'tags': ['Rock', 'Oferta'],
+    'title': 'Cabeza Móvil Beam 230W',
+    'price': 4500.00,
+    'tags': ['Profesional', 'LED'],
     'image':
-        '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
+        '[https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600](https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600)',
+    'isSale': false,
+  },
+  {
+    'title': 'Láser RGB Animación',
+    'price': 2800.00,
+    'tags': ['DJ', 'Láser'],
+    'image':
+        '[https://images.unsplash.com/photo-1470229722913-7c090bf356c4?w=600](https://images.unsplash.com/photo-1470229722913-7c090bf356c4?w=600)',
     'isSale': true,
   },
   {
-    'title': 'Abbey Road - The Beatles',
-    'price': 450.00,
-    'tags': ['Rock', 'Clásico'],
+    'title': 'Máquina de Humo 1500W',
+    'price': 1200.00,
+    'tags': ['FX', 'Humo'],
     'image':
-        '[https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600](https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600)',
+        '[https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600](https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600)',
     'isSale': false,
   },
   {
-    'title': 'Kind of Blue - Miles Davis',
-    'price': 520.00,
-    'tags': ['Jazz'],
+    'title': 'Barra LED Ultravioleta UV',
+    'price': 850.00,
+    'tags': ['Neón', 'LED'],
     'image':
-        '[https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600)',
+        '[https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=600](https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=600)',
     'isSale': false,
   },
   {
-    'title': 'Thriller - Michael Jackson',
-    'price': 380.00,
-    'tags': ['Pop'],
+    'title': 'Par LED 54x3W RGBW',
+    'price': 650.00,
+    'tags': ['Escenario', 'LED'],
     'image':
-        '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
+        '[https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600](https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600)',
+    'isSale': true,
+  },
+  {
+    'title': 'Controlador DMX 512',
+    'price': 1400.00,
+    'tags': ['Control', 'Profesional'],
+    'image':
+        '[https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600](https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600)',
     'isSale': false,
   },
 ];
