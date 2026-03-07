@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
+import '../features/catalog/data/api_service.dart';
+import '../features/catalog/data/product_model.dart';
 
-class VinylsScreen extends StatelessWidget {
-  const VinylsScreen({Key? key}) : super(key: key);
+class VinylsScreen extends StatefulWidget {
+  const VinylsScreen({super.key});
+
+  @override
+  State<VinylsScreen> createState() => _VinylsScreenState();
+}
+
+class _VinylsScreenState extends State<VinylsScreen> {
+  final ProductService _productService = ProductService();
+  late Future<List<ProductModel>> _productsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = _productService.getProducts();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,38 +84,44 @@ class VinylsScreen extends StatelessWidget {
             const SizedBox(height: 30),
 
             // Grid de Productos
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              children: [
-                ProductCard(
-                  title: 'In Utero',
-                  price: 599.99,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?w=400',
-                  tags: const ['Analogico', '1993', '180g Vinil'],
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/detalle-producto'),
-                ),
-                ProductCard(
-                  title: 'Sliver',
-                  price: 299.99,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1619983081563-430f63602796?w=400',
-                  tags: const ['Analogico', '1994', '180g Vinil'],
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/detalle-producto'),
-                ),
-                ProductCard(
-                  title: 'Incesticide 20 Anniversary',
-                  price: 1999.99,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1484882195048-0d3ee78b87ee?w=400',
-                  tags: const ['Analogico', '1992', '180g Vinil'],
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/detalle-producto'),
-                ),
-              ],
+            FutureBuilder<List<ProductModel>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text('No se encontraron productos.'),
+                  );
+                }
+
+                final products = snapshot.data!;
+
+                return Wrap(
+                  spacing: 20,
+                  runSpacing: 20,
+                  children: products.map((product) {
+                    return ProductCard(
+                      title: product.nombre,
+                      price: product.precio,
+                      // Usamos una imagen genérica ya que el backend aún no envía imágenes
+                      imageUrl:
+                          'https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=400',
+                      tags: [
+                        product.tipoProducto,
+                        if (product.estaActivo) 'Disponible' else 'Agotado',
+                      ],
+                      onDetailsTap: () => Navigator.pushNamed(
+                        context,
+                        '/detalle-producto',
+                        arguments: product,
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
           ],
         ),
@@ -110,7 +132,7 @@ class VinylsScreen extends StatelessWidget {
 
 class _FilterTag extends StatelessWidget {
   final String text;
-  const _FilterTag(this.text, {Key? key}) : super(key: key);
+  const _FilterTag(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,7 @@ import '../theme/colors.dart';
 // ==========================================
 class BaseLayout extends StatelessWidget {
   final Widget child;
-  const BaseLayout({Key? key, required this.child}) : super(key: key);
+  const BaseLayout({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +27,7 @@ class BaseLayout extends StatelessWidget {
 }
 
 class CustomHeader extends StatelessWidget {
-  const CustomHeader({Key? key}) : super(key: key);
+  const CustomHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -90,8 +90,7 @@ class _NavBarItem extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const _NavBarItem({Key? key, required this.title, required this.onTap})
-    : super(key: key);
+  const _NavBarItem({required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +108,7 @@ class _NavBarItem extends StatelessWidget {
 }
 
 class CustomFooter extends StatelessWidget {
-  const CustomFooter({Key? key}) : super(key: key);
+  const CustomFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -143,11 +142,11 @@ class CategoryCard extends StatelessWidget {
   final String imageUrl;
 
   const CategoryCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +158,7 @@ class CategoryCard extends StatelessWidget {
           image: NetworkImage(imageUrl),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.4),
+            Colors.black.withValues(alpha: 0.4),
             BlendMode.darken,
           ),
         ),
@@ -196,13 +195,13 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onDetailsTap;
 
   const ProductCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.price,
     required this.imageUrl,
     required this.tags,
     required this.onDetailsTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -213,7 +212,7 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -262,7 +261,9 @@ class ProductCard extends StatelessWidget {
                             color: AppColors.tagBg,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: AppColors.primaryPurple.withOpacity(0.3),
+                              color: AppColors.primaryPurple.withValues(
+                                alpha: 0.3,
+                              ),
                             ),
                           ),
                           child: Text(
@@ -337,7 +338,7 @@ class ProductCard extends StatelessWidget {
 // ==========================================
 
 class CartDrawer extends StatelessWidget {
-  const CartDrawer({Key? key}) : super(key: key);
+  const CartDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -439,7 +440,7 @@ class CartDrawer extends StatelessWidget {
 }
 
 class _CartItemMock extends StatelessWidget {
-  const _CartItemMock({Key? key}) : super(key: key);
+  const _CartItemMock();
 
   @override
   Widget build(BuildContext context) {
@@ -521,7 +522,7 @@ class _CartItemMock extends StatelessWidget {
 }
 
 class CheckoutModal extends StatefulWidget {
-  const CheckoutModal({Key? key}) : super(key: key);
+  const CheckoutModal({super.key});
 
   @override
   State<CheckoutModal> createState() => _CheckoutModalState();
@@ -619,7 +620,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: AppColors.primaryPurple.withOpacity(0.5),
+                color: AppColors.primaryPurple.withValues(alpha: 0.5),
                 fontSize: 14,
               ),
               contentPadding: const EdgeInsets.symmetric(

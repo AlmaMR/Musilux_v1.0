@@ -3,6 +3,7 @@ import 'theme/colors.dart';
 import 'screens/home_screen.dart';
 import 'screens/vinyls_screen.dart';
 import 'screens/product_detail_screen.dart';
+import 'screens/admin_products_screen.dart';
 
 void main() {
   runApp(const MusiluxApp());
@@ -12,7 +13,7 @@ void main() {
 // APLICACIÓN PRINCIPAL & RUTAS
 // ==========================================
 class MusiluxApp extends StatelessWidget {
-  const MusiluxApp({Key? key}) : super(key: key);
+  const MusiluxApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +40,7 @@ class MusiluxApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/vinilos': (context) => const VinylsScreen(),
         '/detalle-producto': (context) => const ProductDetailScreen(),
+        '/admin': (context) => const AdminProductsScreen(),
       },
     );
   }
