@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
-class VinylsScreen extends StatefulWidget {
-  const VinylsScreen({Key? key}) : super(key: key);
+class InstrumentsScreen extends StatefulWidget {
+  const InstrumentsScreen({Key? key}) : super(key: key);
 
   @override
-  State<VinylsScreen> createState() => _VinylsScreenState();
+  State<InstrumentsScreen> createState() => _InstrumentsScreenState();
 }
 
-class _VinylsScreenState extends State<VinylsScreen> {
+class _InstrumentsScreenState extends State<InstrumentsScreen> {
   String _selectedCategory = 'Todos';
   String _selectedSort = 'Recomendados';
 
   final List<String> _categories = [
     'Todos',
-    'Rock',
-    'Pop',
-    'Jazz',
-    'Clásica',
-    'Electrónica',
+    'Guitarras',
+    'Bajos',
+    'Baterías',
+    'Teclados',
+    'Accesorios',
   ];
   final List<String> _sortOptions = [
     'Recomendados',
@@ -40,7 +40,7 @@ class _VinylsScreenState extends State<VinylsScreen> {
     else if (screenWidth < 1200)
       crossAxisCount = 3;
 
-    var filteredProducts = _vinilosProducts.where((product) {
+    var filteredProducts = _instrumentosProducts.where((product) {
       if (_selectedCategory == 'Todos') return true;
       return (product['tags'] as List).contains(_selectedCategory);
     }).toList();
@@ -65,12 +65,12 @@ class _VinylsScreenState extends State<VinylsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Discos de Vinilo',
+              'Instrumentos Musicales',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'La mejor calidad de audio analógico de tus artistas favoritos.',
+              'Encuentra el sonido perfecto para ti.',
               style: TextStyle(fontSize: 16, color: Colors.black54),
             ),
             const SizedBox(height: 30),
@@ -102,7 +102,7 @@ class _VinylsScreenState extends State<VinylsScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(40.0),
                       child: Text(
-                        'No hay discos en esta categoría',
+                        'No hay productos en esta categoría',
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ),
@@ -205,37 +205,42 @@ class _VinylsScreenState extends State<VinylsScreen> {
   }
 }
 
-final List<Map<String, dynamic>> _vinilosProducts = [
+final List<Map<String, dynamic>> _instrumentosProducts = [
   {
-    'title': 'Sliver - Nirvana',
-    'price': 299.99,
-    'tags': ['Rock', 'Oferta'],
+    'title': 'Guitarra Eléctrica Fender',
+    'price': 18500.00,
+    'tags': ['Guitarras', 'Profesional'],
+    'image': 'https://m.media-amazon.com/images/I/61aAV9OZz8L._AC_SY879_.jpg',
+    'isSale': false,
+  },
+  {
+    'title': 'Batería Acústica Yamaha',
+    'price': 15499.00,
+    'tags': ['Baterías', 'Oferta'],
     'image':
-        '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
+        'https://m.media-amazon.com/images/S/aplus-media-library-service-media/e04da6f5-c8dd-43a8-b82a-ef27cb61cec2.__CR0,0,600,600_PT0_SX300_V1___.png',
     'isSale': true,
   },
   {
-    'title': 'Abbey Road - The Beatles',
-    'price': 450.00,
-    'tags': ['Rock', 'Clásico'],
-    'image':
-        '[https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600](https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600)',
+    'title': 'Bajo Eléctrico Ibanez',
+    'price': 7200.00,
+    'tags': ['Bajos'],
+    'image': 'https://m.media-amazon.com/images/I/71KHUkwn3WL.jpg',
     'isSale': false,
   },
   {
-    'title': 'Kind of Blue - Miles Davis',
-    'price': 520.00,
-    'tags': ['Jazz'],
+    'title': 'Teclado Korg 61 Teclas',
+    'price': 8200.00,
+    'tags': ['Teclados', 'Oferta'],
     'image':
-        '[https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600)',
-    'isSale': false,
+        'https://m.media-amazon.com/images/I/51Pm9zO5QIL._AC_UF350,350_QL80_.jpg',
+    'isSale': true,
   },
   {
-    'title': 'Thriller - Michael Jackson',
-    'price': 380.00,
-    'tags': ['Pop'],
-    'image':
-        '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
-    'isSale': false,
+    'title': 'Guitarra Acústica Taylor',
+    'price': 9500.00,
+    'tags': ['Guitarras', 'Acústica'],
+    'image': 'https://m.media-amazon.com/images/I/7115TB+TXeL.jpg',
+    'isSale': true,
   },
 ];

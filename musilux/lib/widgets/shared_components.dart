@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
 // ==========================================
-// LAYOUT BASE (Header, Footer, Drawer)
+// LAYOUT BASE (Header, Footer, Drawers)
 // ==========================================
 class BaseLayout extends StatelessWidget {
   final Widget child;
@@ -11,6 +11,8 @@ class BaseLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
+      drawer: const NavDrawer(),
       endDrawer: const CartDrawer(),
       body: Column(
         children: [
@@ -26,59 +28,85 @@ class BaseLayout extends StatelessWidget {
   }
 }
 
+// ==========================================
+// ENCABEZADO (Header y Barra de Navegación)
+// ==========================================
 class CustomHeader extends StatelessWidget {
   const CustomHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
     return Container(
       height: 70,
       color: AppColors.headerBg,
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
       child: Row(
         children: [
-          // Logo
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: () => Navigator.pushReplacementNamed(context, '/'),
+              onTap: () {
+                if (ModalRoute.of(context)?.settings.name != '/') {
+                  Navigator.pushNamed(context, '/');
+                }
+              },
               child: const Text(
                 'Musilux',
                 style: TextStyle(
                   color: AppColors.primaryPurple,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
             ),
           ),
           const Spacer(),
-          // Links de Navegación
-          _NavBarItem(title: 'Instrumentos', onTap: () {}),
-          _NavBarItem(title: 'Iluminación', onTap: () {}),
-          _NavBarItem(
-            title: 'Vinilos',
-            onTap: () => Navigator.pushNamed(context, '/vinilos'),
-          ),
-          _NavBarItem(title: 'Contacto', onTap: () {}),
-          const SizedBox(width: 20),
-          // Iconos
+          if (!isMobile) ...[
+            _NavBarItem(
+              title: 'Instrumentos',
+              onTap: () => Navigator.pushNamed(context, '/instrumentos'),
+            ),
+            _NavBarItem(
+              title: 'Iluminación',
+              onTap: () => Navigator.pushNamed(context, '/iluminacion'),
+            ),
+            _NavBarItem(
+              title: 'Vinilos',
+              onTap: () => Navigator.pushNamed(context, '/vinilos'),
+            ),
+            _NavBarItem(
+              title: 'Contacto',
+              onTap: () => Navigator.pushNamed(context, '/contacto'),
+            ),
+            const SizedBox(width: 20),
+          ],
+
+          // --- BOTÓN DE BUSCADOR FUNCIONAL ---
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white70),
-            onPressed: () {},
+            onPressed: () {
+              showSearch(context: context, delegate: ProductSearchDelegate());
+            },
           ),
+
           IconButton(
             icon: const Icon(
               Icons.shopping_cart_outlined,
               color: Colors.white70,
             ),
-            onPressed: () {
-              Scaffold.of(context).openEndDrawer();
-            },
+            onPressed: () => Scaffold.of(context).openEndDrawer(),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white70),
-            onPressed: () {},
+            onPressed: () => Navigator.pushNamed(context, '/perfil'),
           ),
         ],
       ),
@@ -95,33 +123,40 @@ class _NavBarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: TextButton(
-        onPressed: onTap,
-        child: Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Text(
+            title,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
         ),
       ),
     );
   }
 }
 
+// ==========================================
+// PIE DE PÁGINA (Footer)
+// ==========================================
 class CustomFooter extends StatelessWidget {
   const CustomFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 30),
-      alignment: Alignment.center,
+      width: double.infinity,
+      color: Colors.transparent,
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       child: const Column(
         children: [
           Text(
             'Contacto: info@musilux.com | Tel: 311 123 8040',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: Colors.black87),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: 8),
           Text(
             'Enlaces Útiles: Términos y Condiciones | Política de Privacidad',
             style: TextStyle(fontSize: 12, color: Colors.black54),
@@ -133,52 +168,180 @@ class CustomFooter extends StatelessWidget {
 }
 
 // ==========================================
-// TARJETAS DE PRODUCTO Y CATEGORÍA
+// MENÚ DE NAVEGACIÓN MÓVIL (Drawer Izquierdo)
 // ==========================================
+class NavDrawer extends StatelessWidget {
+  const NavDrawer({Key? key}) : super(key: key);
 
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: AppColors.headerBg),
+            child: Center(
+              child: Text(
+                'Musilux',
+                style: TextStyle(
+                  color: AppColors.primaryPurple,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.music_note),
+            title: const Text('Instrumentos'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/instrumentos');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.lightbulb_outline),
+            title: const Text('Iluminación'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/iluminacion');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.album),
+            title: const Text('Vinilos'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/vinilos');
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/perfil');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.mail),
+            title: const Text('Contacto'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/contacto');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// CARRITO DE COMPRAS (Drawer Derecho)
+// ==========================================
+class CartDrawer extends StatelessWidget {
+  const CartDrawer({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.grey.shade100,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 40, bottom: 20),
+            child: Text(
+              'Carrito de compras',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                'Carrito vacío',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// TARJETA DE CATEGORÍA
+// ==========================================
 class CategoryCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String imageUrl;
+  final VoidCallback onTap;
+  final double? width;
 
   const CategoryCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
-  });
+    required this.onTap,
+    this.width,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: width ?? 300,
       height: 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        image: DecorationImage(
-          image: NetworkImage(imageUrl),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withValues(alpha: 0.4),
-            BlendMode.darken,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
           ),
-        ),
+        ],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => Container(color: Colors.grey),
+            ),
+            Container(color: Colors.black.withOpacity(0.4)),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(onTap: onTap),
+              ),
             ),
           ],
         ),
@@ -187,12 +350,16 @@ class CategoryCard extends StatelessWidget {
   }
 }
 
+// ==========================================
+// TARJETA DE PRODUCTO
+// ==========================================
 class ProductCard extends StatelessWidget {
   final String title;
   final double price;
   final String imageUrl;
   final List<String> tags;
   final VoidCallback onDetailsTap;
+  final bool isSale;
 
   const ProductCard({
     super.key,
@@ -201,52 +368,61 @@ class ProductCard extends StatelessWidget {
     required this.imageUrl,
     required this.tags,
     required this.onDetailsTap,
-  });
+    this.isSale = false,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 300,
+      width: 260,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Imagen
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              imageUrl,
-              height: 250,
-              width: double.infinity,
-              fit: BoxFit.cover,
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
-                // Tags
+                const SizedBox(height: 6),
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
@@ -254,72 +430,84 @@ class ProductCard extends StatelessWidget {
                       .map(
                         (tag) => Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                            horizontal: 6,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.tagBg,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.primaryPurple.withValues(
-                                alpha: 0.3,
-                              ),
-                            ),
+                            color: AppColors.primaryPurple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             tag,
                             style: const TextStyle(
-                              fontSize: 10,
                               color: AppColors.primaryPurple,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       )
                       .toList(),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   '\$${price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.priceText,
+                    color: isSale
+                        ? Colors.orange.shade800
+                        : AppColors.primaryPurple,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add_shopping_cart, size: 16),
-                      label: const Text(
-                        'Agregar',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Agregado al carrito'),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryPurple,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        child: const Text(
+                          'Agregar',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                         ),
                       ),
                     ),
-                    OutlinedButton(
-                      onPressed: onDetailsTap,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryPurple,
-                        side: const BorderSide(color: AppColors.primaryPurple),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/detalle-producto');
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          side: const BorderSide(
+                            color: AppColors.primaryPurple,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        child: const Text(
+                          'Detalles',
+                          style: TextStyle(
+                            color: AppColors.primaryPurple,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Ver Detalles',
-                        style: TextStyle(fontSize: 12),
                       ),
                     ),
                   ],
@@ -334,315 +522,101 @@ class ProductCard extends StatelessWidget {
 }
 
 // ==========================================
-// CARRITO DE COMPRAS Y CHECKOUT
+// DELEGADO DEL BUSCADOR (SearchDelegate)
 // ==========================================
-
-class CartDrawer extends StatelessWidget {
-  const CartDrawer({super.key});
+class ProductSearchDelegate extends SearchDelegate<String> {
+  // Simulación de productos en la tienda
+  final List<String> products = [
+    'Batería Acústica Yamaha',
+    'Controlador DJ Pioneer',
+    'Guitarra Acústica Taylor',
+    'Sliver - Nirvana (Vinilo)',
+    'Teclado Korg 61 Teclas',
+    'Cabeza Móvil Beam 230W',
+    'Láser RGB Animación',
+    'Máquina de Humo 1500W',
+    'Barra LED Ultravioleta UV',
+    'Par LED 54x3W RGBW',
+    'Controlador DMX 512',
+    'Luz Estroboscópica 1000W',
+  ];
 
   @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      width: 350,
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Carrito de compras',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                CloseButton(),
-              ],
-            ),
-            const Divider(),
-            Expanded(
-              child: ListView(
-                children: const [
-                  _CartItemMock(),
-                  _CartItemMock(),
-                  _CartItemMock(),
-                ],
-              ),
-            ),
-            const Divider(),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Subtotal', style: TextStyle(color: Colors.black54)),
-                Text(
-                  '\$5997.00',
-                  style: TextStyle(
-                    color: AppColors.primaryPurple,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Envio', style: TextStyle(color: Colors.black54)),
-                Text(
-                  'Gratis',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 30),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '\$5997.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Cierra el Drawer
-                  showDialog(
-                    context: context,
-                    builder: (_) => const CheckoutModal(),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Finalizar compra',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-          ],
+  String get searchFieldLabel => 'Buscar en Musilux...';
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            query = '';
+          },
         ),
-      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, '');
+      },
     );
   }
-}
-
-class _CartItemMock extends StatelessWidget {
-  const _CartItemMock();
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: const DecorationImage(
-                image: NetworkImage(
-                  'https://images.unsplash.com/photo-1550291652-6ea9114a47b1?w=150',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Guitarra eléctrica popular para principiantes',
-                  style: TextStyle(fontSize: 12),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          InkWell(
-                            onTap: () {},
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('-'),
-                            ),
-                          ),
-                          const Text('1'),
-                          InkWell(
-                            onTap: () {},
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('+'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      '\$1999.00',
-                      style: TextStyle(
-                        color: AppColors.primaryPurple,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-        ],
-      ),
-    );
-  }
-}
+  Widget buildResults(BuildContext context) {
+    final results = products
+        .where((p) => p.toLowerCase().contains(query.toLowerCase()))
+        .toList();
 
-class CheckoutModal extends StatefulWidget {
-  const CheckoutModal({super.key});
-
-  @override
-  State<CheckoutModal> createState() => _CheckoutModalState();
-}
-
-class _CheckoutModalState extends State<CheckoutModal> {
-  int _currentStep = 1;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Text(
-                'Paso $_currentStep de 2',
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Completar Compra',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            if (_currentStep == 1) ...[
-              _buildTextField(
-                'Calle y numero exterior o interior',
-                'Calle y numero',
-              ),
-              _buildTextField('Estado', 'Estado'),
-              _buildTextField('Municipio', 'Nayarit'),
-              _buildTextField('Codigo Postal', 'Codigo Postal'),
-              _buildTextField('Colonia', 'Colonia'),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => setState(() => _currentStep = 2),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Continuar'),
-                ),
-              ),
-            ] else ...[
-              _buildTextField('Numero de Tarjeta', 'xxxx-xxxx-xxxx-xxxx'),
-              _buildTextField('Nombre del Titular', 'nombre completo'),
-              _buildTextField('Fecha de Vencimiento', '4 digitos'),
-              _buildTextField('Codigo de Seguridad', '3 digitos'),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Cierra el modal
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('¡Compra realizada con éxito!'),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Pagar Ahora'),
-                ),
-              ),
-            ],
-          ],
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          'No se encontraron resultados para "$query"',
+          style: const TextStyle(fontSize: 16),
         ),
-      ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          leading: const Icon(Icons.music_note, color: AppColors.primaryPurple),
+          title: Text(results[index]),
+          onTap: () {
+            close(context, results[index]);
+            Navigator.pushNamed(context, '/producto_detalle');
+          },
+        );
+      },
     );
   }
 
-  Widget _buildTextField(String label, String hint) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          TextField(
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: AppColors.primaryPurple.withValues(alpha: 0.5),
-                fontSize: 14,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: AppColors.primaryPurple),
-              ),
-            ),
-          ),
-        ],
-      ),
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final suggestions = query.isEmpty
+        ? ['Guitarra', 'Luces LED', 'Vinilos Rock']
+        : products
+              .where((p) => p.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          leading: const Icon(Icons.search, color: Colors.grey),
+          title: Text(suggestions[index]),
+          onTap: () {
+            query = suggestions[index];
+            showResults(context);
+          },
+        );
+      },
     );
   }
 }
