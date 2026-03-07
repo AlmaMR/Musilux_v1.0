@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
+import '../features/catalog/data/api_service.dart';
+import '../features/catalog/data/product_model.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final ProductService _productService = ProductService();
+  late Future<List<ProductModel>> _productsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = _productService.getProducts();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,38 +85,39 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              children: [
-                ProductCard(
-                  title: 'Sliver',
-                  price: 299.99,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1619983081563-430f63602796?w=400',
-                  tags: const ['Analogico', '1994', '180g Vinil'],
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/detalle-producto'),
-                ),
-                ProductCard(
-                  title: 'Fender Bajo Eléctrico',
-                  price: 7999.99,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1550291652-6ea9114a47b1?w=400',
-                  tags: const ['Fender', 'Todo Incluido', 'Pack'],
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/detalle-producto'),
-                ),
-                ProductCard(
-                  title: 'Bola de Discoteca Grande',
-                  price: 1899.99,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1567593810070-7a3d471af022?w=400',
-                  tags: const ['Disco', 'Espejos', 'Lataxar'],
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/detalle-producto'),
-                ),
-              ],
+            FutureBuilder<List<ProductModel>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text('No hay promociones disponibles.');
+                }
+
+                // Tomamos solo los primeros 3 productos para el Home
+                final products = snapshot.data!.take(3).toList();
+
+                return Wrap(
+                  spacing: 20,
+                  runSpacing: 20,
+                  children: products.map((product) {
+                    return ProductCard(
+                      title: product.nombre,
+                      price: product.precio,
+                      imageUrl:
+                          'https://images.unsplash.com/photo-1550291652-6ea9114a47b1?w=400', // Placeholder
+                      tags: [product.tipoProducto],
+                      onDetailsTap: () => Navigator.pushNamed(
+                        context,
+                        '/detalle-producto',
+                        arguments: product,
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
             const SizedBox(height: 50),
 

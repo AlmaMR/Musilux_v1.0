@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
+import '../features/catalog/data/product_model.dart';
 
 class ProductDetailScreen extends StatelessWidget {
-  const ProductDetailScreen({Key? key}) : super(key: key);
+  const ProductDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Recibimos el producto de los argumentos de la ruta
+    final ProductModel? product =
+        ModalRoute.of(context)?.settings.arguments as ProductModel?;
+
+    if (product == null) {
+      return const Scaffold(
+        body: Center(child: Text('Producto no encontrado')),
+      );
+    }
+
     return BaseLayout(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -16,7 +27,7 @@ class ProductDetailScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               ),
@@ -72,26 +83,26 @@ class ProductDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'In Utero',
-                      style: TextStyle(
+                    Text(
+                      product.nombre,
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      '\$599.99',
-                      style: TextStyle(
+                    Text(
+                      '\$${product.precio}',
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryPurple,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '"In Utero" es una grabación aullante y desafiantemente punk, un retroceso poco sentimental a una era de epifanías de bandas de garaje y rock and roll crudo y sin adornos. Nirvana arremete contra la conformidad alternativa...',
-                      style: TextStyle(
+                    Text(
+                      product.descripcion ?? 'Sin descripción disponible.',
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.black87,
                         height: 1.5,
@@ -106,15 +117,12 @@ class ProductDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const _SpecItem(
-                      'Producto descontinuado por el fabricante: No',
+                    _SpecItem('Tipo: ${product.tipoProducto.toUpperCase()}'),
+                    _SpecItem('Inventario disponible: ${product.inventario}'),
+                    if (product.bpm != null) _SpecItem('BPM: ${product.bpm}'),
+                    _SpecItem(
+                      'Estado: ${product.estaActivo ? "Activo" : "Inactivo"}',
                     ),
-                    const _SpecItem(
-                      'Dimensiones del producto: 31,29 x 31,39 x 1,19 cm; 235,87 g',
-                    ),
-                    const _SpecItem('Referencia del fabricante: GEF24536'),
-                    const _SpecItem('ASIN: B00004WP7P'),
-                    const _SpecItem('Número de discos: 1'),
                     const SizedBox(height: 30),
 
                     // Demo Audio Player
@@ -205,7 +213,7 @@ class ProductDetailScreen extends StatelessWidget {
 
 class _Thumbnail extends StatelessWidget {
   final String url;
-  const _Thumbnail(this.url, {Key? key}) : super(key: key);
+  const _Thumbnail(this.url, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +231,7 @@ class _Thumbnail extends StatelessWidget {
 
 class _SpecItem extends StatelessWidget {
   final String text;
-  const _SpecItem(this.text, {Key? key}) : super(key: key);
+  const _SpecItem(this.text);
 
   @override
   Widget build(BuildContext context) {
