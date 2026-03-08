@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
-import '../features/catalog/data/product_model.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  const ProductDetailScreen({Key? key}) : super(key: key);
+  const ProductDetailScreen({super.key});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -77,7 +76,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 color: AppColors.tagBg,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primaryPurple.withOpacity(0.3),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -126,7 +125,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -414,7 +413,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
 class _ColorCircle extends StatelessWidget {
   final Color color;
-  const _ColorCircle(this.color, {Key? key}) : super(key: key);
+  const _ColorCircle(this.color, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -427,7 +426,7 @@ class _ColorCircle extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300, width: 2),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha: 0.4),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -443,11 +442,11 @@ class _TestTab extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TestTab({
-    Key? key,
+    super.key,
     required this.title,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

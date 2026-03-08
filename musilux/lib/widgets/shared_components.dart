@@ -289,7 +289,7 @@ class CategoryCard extends StatelessWidget {
     required this.imageUrl,
     required this.onTap,
     this.width,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +300,7 @@ class CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -316,7 +316,7 @@ class CategoryCard extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (c, e, s) => Container(color: Colors.grey),
             ),
-            Container(color: Colors.black.withOpacity(0.4)),
+            Container(color: Colors.black.withValues(alpha: 0.4)),
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -369,7 +369,7 @@ class ProductCard extends StatelessWidget {
     required this.tags,
     required this.onDetailsTap,
     this.isSale = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +380,7 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -434,7 +434,9 @@ class ProductCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryPurple.withOpacity(0.1),
+                            color: AppColors.primaryPurple.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(

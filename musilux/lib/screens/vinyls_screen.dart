@@ -3,7 +3,7 @@ import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class VinylsScreen extends StatefulWidget {
-  const VinylsScreen({Key? key}) : super(key: key);
+  const VinylsScreen({super.key});
 
   @override
   State<VinylsScreen> createState() => _VinylsScreenState();
@@ -33,12 +33,13 @@ class _VinylsScreenState extends State<VinylsScreen> {
     final isMobile = screenWidth < 800;
 
     int crossAxisCount = 4;
-    if (screenWidth < 600)
+    if (screenWidth < 600) {
       crossAxisCount = 1;
-    else if (screenWidth < 900)
+    } else if (screenWidth < 900) {
       crossAxisCount = 2;
-    else if (screenWidth < 1200)
+    } else if (screenWidth < 1200) {
       crossAxisCount = 3;
+    }
 
     var filteredProducts = _vinilosProducts.where((product) {
       if (_selectedCategory == 'Todos') return true;
