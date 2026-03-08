@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 30),
 
             // Categorías
-            const Row(
+            Row(
               children: [
                 Expanded(
                   child: CategoryCard(
@@ -49,24 +49,27 @@ class _HomeScreenState extends State<HomeScreen> {
                     subtitle: 'Descubre nuestra colección',
                     imageUrl:
                         'https://images.unsplash.com/photo-1564186763535-ebb21ef5277f?w=600&q=80',
+                    onTap: () => Navigator.pushNamed(context, '/instrumentos'),
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
                 Expanded(
                   child: CategoryCard(
                     title: 'Iluminación',
                     subtitle: 'Soluciones para cada ambiente',
                     imageUrl:
                         'https://images.unsplash.com/photo-1533923156502-be31530547c4?w=600&q=80',
+                    onTap: () => Navigator.pushNamed(context, '/iluminacion'),
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
                 Expanded(
                   child: CategoryCard(
                     title: 'Vinilos',
                     subtitle: 'Sonido Clásico, calidad premium',
                     imageUrl:
                         'https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600&q=80',
+                    onTap: () => Navigator.pushNamed(context, '/vinilos'),
                   ),
                 ),
               ],

@@ -1,9 +1,18 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'product_model.dart';
 
 class ProductService {
-  final String baseUrl = "http://10.0.2.2:8080/api/productos";
+  String get baseUrl {
+    if (kIsWeb) {
+      return "http://127.0.0.1:8080/api/productos";
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return "http://10.0.2.2:8080/api/productos";
+    }
+    return "http://127.0.0.1:8080/api/productos";
+  }
 
   Future<List<ProductModel>> getProducts() async {
     final response = await http.get(Uri.parse(baseUrl));
