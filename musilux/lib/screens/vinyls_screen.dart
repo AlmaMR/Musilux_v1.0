@@ -20,6 +20,10 @@ class _VinylsScreenState extends State<VinylsScreen> {
     'Jazz',
     'Clásica',
     'Electrónica',
+    'Grunge',
+    'Metal',
+    'Acustico',
+    'Alternativo',
   ];
   final List<String> _sortOptions = [
     'Recomendados',
@@ -212,15 +216,36 @@ final List<Map<String, dynamic>> _vinilosProducts = [
     'price': 299.99,
     'tags': ['Rock', 'Oferta'],
     'image':
-        '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
+        'https://m.media-amazon.com/images/I/81oDljdj-FL._UF1000,1000_QL80_.jpg',
     'isSale': true,
+  },
+  {
+    'title': 'Unplugged in New York - Nirvana',
+    'price': 999.99,
+    'tags': ['Rock', 'Grunge', 'Acustico'],
+    'image':
+        'https://m.media-amazon.com/images/I/61kVo9GKvjL._UF1000,1000_QL80_.jpg',
+    'isSale': false,
+  },
+  {
+    'title': 'Highway to Hell- AC/DC',
+    'price': 942.99,
+    'tags': ['Rock', 'Alternativo'],
+    'image': 'https://m.media-amazon.com/images/I/71SKVywshEL.jpg',
+    'isSale': false,
+  },
+  {
+    'title': 'Nevermind - Nirvana',
+    'price': 1049.99,
+    'tags': ['Rock', 'Grunge'],
+    'image': 'https://m.media-amazon.com/images/I/61ZhsEYnSdL.jpg',
+    'isSale': false,
   },
   {
     'title': 'Abbey Road - The Beatles',
     'price': 450.00,
     'tags': ['Rock', 'Clásico'],
-    'image':
-        '[https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600](https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600)',
+    'image': 'https://m.media-amazon.com/images/I/91YlTtiGi0L.jpg',
     'isSale': false,
   },
   {
@@ -228,7 +253,7 @@ final List<Map<String, dynamic>> _vinilosProducts = [
     'price': 520.00,
     'tags': ['Jazz'],
     'image':
-        '[https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600)',
+        'https://m.media-amazon.com/images/I/71W8b8QzfiL._UF1000,1000_QL80_.jpg',
     'isSale': false,
   },
   {
@@ -236,7 +261,7 @@ final List<Map<String, dynamic>> _vinilosProducts = [
     'price': 380.00,
     'tags': ['Pop'],
     'image':
-        '[https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600](https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600)',
+        'https://m.media-amazon.com/images/I/81ogsUqshzL._UF1000,1000_QL80_.jpg',
     'isSale': false,
   },
 ];
