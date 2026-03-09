@@ -16,10 +16,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // Datos mockeados para cada tipo de producto
   final Map<String, dynamic> _datos = {
     'vinilo': {
-      'titulo': 'In Utero - Nirvana',
-      'precio': '\$599.99',
+      'titulo': 'Unplugged in New York - Nirvana',
+      'precio': '\$999.99',
       'desc':
-          '"In Utero" es una grabación aullante y desafiantemente punk, un retroceso poco sentimental a una era de epifanías de bandas de garaje y rock and roll crudo y sin adornos.',
+          'El vinilo de Nirvana - MTV Unplugged in New York es una grabación histórica en vivo de noviembre de 1993, lanzada póstumamente en 1994, que destaca por su formato acústico e íntimo.',
       'specs': [
         'Producto descontinuado: No',
         'Dimensiones: 31 x 31 cm',
@@ -27,21 +27,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'Número de discos: 1',
       ],
       'img':
-          'https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?w=600',
+          'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
     },
     'instrumento': {
-      'titulo': 'Fender Stratocaster',
-      'precio': '\$4999.99',
+      'titulo': 'Guitarra Eléctrica Fender',
+      'precio': '\$18500.00',
       'desc':
-          'La Stratocaster es el arquetipo de la guitarra eléctrica. Cuenta con un mástil de arce, cuerpo de aliso y 3 pastillas de bobina simple para un tono cristalino y versátil.',
+          'La Fender Kurt Cobain Jag-Stang es una guitarra eléctrica signature diseñada por el líder de Nirvana, lanzada originalmente en los 90, que fusiona características de los modelos Jaguar y Mustang. Destaca por su cuerpo de aliso, escala corta de 24 pulgadas, mástil de arce con diapasón de palisandro y una configuración de pastillas versátil (Humbucker en puente, Single-Coil en mástil) ideal para el sonido grunge.',
       'specs': [
         'Cuerpo: Aliso',
         'Mástil: Arce',
         'Trastes: 22 Medium Jumbo',
         'Pastillas: 3x Single-Coil',
       ],
-      'img':
-          'https://images.unsplash.com/photo-1564186763535-ebb21ef5277f?w=600',
+      'img': 'https://m.media-amazon.com/images/I/61aAV9OZz8L._AC_SY879_.jpg',
     },
     'iluminacion': {
       'titulo': 'Foco Láser LED RGB',
@@ -55,7 +54,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'Vida útil LED: 50,000 hrs',
       ],
       'img':
-          'https://images.unsplash.com/photo-1533923156502-be31530547c4?w=600',
+          'https://m.media-amazon.com/images/I/81u4qN9tV5L._AC_UF1000,1000_QL80_.jpg',
     },
   };
 
@@ -158,11 +157,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             _Thumbnail(productoActual['img']),
                             const SizedBox(width: 10),
                             const _Thumbnail(
-                              'https://images.unsplash.com/photo-1619983081563-430f63602796?w=100',
+                              'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
                             ),
                             const SizedBox(width: 10),
                             const _Thumbnail(
-                              'https://images.unsplash.com/photo-1484882195048-0d3ee78b87ee?w=100',
+                              'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
                             ),
                             const SizedBox(width: 10),
                             const Icon(Icons.arrow_forward_ios, size: 16),
