@@ -1,52 +1,29 @@
-class ProductModel {
-  final String? id;
-  final String nombre;
-  final String slug;
-  final String? descripcion;
-  final String tipoProducto;
-  final double precio;
-  final int inventario;
-  final int? bpm;
-  final bool estaActivo;
+import 'package:musilux/product.dart'; // Import the base Product class
 
-  ProductModel({
-    this.id,
-    required this.nombre,
-    required this.slug,
-    this.descripcion,
-    required this.tipoProducto,
-    required this.precio,
-    required this.inventario,
-    this.bpm,
-    this.estaActivo = true,
+class ProductModel extends Product {
+  const ProductModel({
+    required super.id,
+    required super.name,
+    required super.description,
+    required super.price,
+    required super.imageUrl,
+    required super.category,
   });
 
+  // Factory constructor para crear un ProductModel desde un JSON (ej. de una API)
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      id: json['id']?.toString(),
-      nombre: json['nombre'] ?? '',
-      slug: json['slug'] ?? '',
-      descripcion: json['descripcion'],
-      tipoProducto: json['tipo_producto'] ?? 'fisico',
-      // Manejo seguro de tipos numéricos (Laravel puede enviar string, int o double)
-      precio: double.tryParse(json['precio'].toString()) ?? 0.0,
-      inventario: int.tryParse(json['inventario'].toString()) ?? 0,
-      bpm: json['bpm'] != null ? int.tryParse(json['bpm'].toString()) : null,
-      estaActivo: json['esta_activo'] == 1 || json['esta_activo'] == true,
+      id: json['id'] as String,
+      name: json['nombre'] as String,
+      description: json['descripcion'] as String,
+      price: (json['precio'] as num).toDouble(),
+      // Asume que la API proporciona 'imageUrl' y 'category'
+      // Si no, necesitarás mapearlos desde otros campos o proporcionar valores por defecto
+      imageUrl:
+          json['imageUrl'] as String? ?? 'https://via.placeholder.com/150',
+      category: json['category'] as String? ?? 'General',
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'nombre': nombre,
-      'slug': slug,
-      'descripcion': descripcion,
-      'tipo_producto': tipoProducto,
-      'precio': precio,
-      'inventario': inventario,
-      'bpm': bpm,
-      'esta_activo': estaActivo,
-    };
-  }
+  // Puedes añadir más métodos o propiedades específicas de la capa de datos aquí
 }

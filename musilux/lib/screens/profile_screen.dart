@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../widgets/shared_components.dart';
+import 'package:musilux/widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -13,6 +13,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Estados para controlar qué vista mostrar
   bool isAuthenticated = false; // ¿Inició sesión?
   bool isLoginView = true; // true = Mostrar Login, false = Mostrar Registro
+
+  // Claves para los formularios
+  final _registerFormKey = GlobalKey<FormState>();
+  final _loginFormKey = GlobalKey<FormState>();
 
   // Controladores de texto para guardar los datos
   final _nombresController = TextEditingController();
@@ -34,8 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Función para simular el registro
   void _registrarse() {
-    if (_nombresController.text.isNotEmpty &&
-        _correoController.text.isNotEmpty) {
+    if (_registerFormKey.currentState!.validate()) {
       setState(() {
         // Obtenemos la fecha actual
         final now = DateTime.now();
@@ -59,17 +62,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isAuthenticated =
             true; // Iniciamos la sesión automáticamente al registrar
       });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Llena los campos requeridos')),
-      );
     }
   }
 
   // Función para simular el inicio de sesión
   void _iniciarSesion() {
-    if (_correoController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty) {
+    if (_loginFormKey.currentState!.validate()) {
       setState(() {
         isAuthenticated = true;
         // Si no se había registrado (datos vacíos), llenamos datos genéricos de prueba
@@ -96,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withAlpha(13),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -201,62 +199,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // VISTA: FORMULARIO DE REGISTRO
   // ==========================================
   Widget _buildRegisterForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Crear Cuenta',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Únete a Musilux para realizar tus compras.',
-          style: TextStyle(color: Colors.black54),
-        ),
-        const SizedBox(height: 30),
+    return Form(
+      key: _registerFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Crear Cuenta',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Únete a Musilux para realizar tus compras.',
+            style: TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 30),
 
-        _buildTextField('Nombres', controller: _nombresController),
-        const SizedBox(height: 16),
-        _buildTextField('Apellidos', controller: _apellidosController),
-        const SizedBox(height: 16),
-        _buildTextField(
-          'Correo electrónico',
-          controller: _correoController,
-          isEmail: true,
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          'Contraseña',
-          controller: _passwordController,
-          isPassword: true,
-        ),
+          _buildTextFormField(
+            'Nombres',
+            controller: _nombresController,
+            validator: (value) =>
+                value!.isEmpty ? 'Por favor, ingresa tu nombre' : null,
+          ),
+          const SizedBox(height: 16),
+          _buildTextFormField('Apellidos', controller: _apellidosController),
+          const SizedBox(height: 16),
+          _buildTextFormField(
+            'Correo electrónico',
+            controller: _correoController,
+            isEmail: true,
+            validator: (value) {
+              if (value!.isEmpty) return 'Por favor, ingresa tu correo';
+              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                return 'Ingresa un correo válido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildTextFormField(
+            'Contraseña',
+            controller: _passwordController,
+            isPassword: true,
+            validator: (value) {
+              if (value!.isEmpty) return 'Por favor, ingresa una contraseña';
+              if (value.length < 6) {
+                return 'La contraseña debe tener al menos 6 caracteres';
+              }
+              return null;
+            },
+          ),
 
-        const SizedBox(height: 30),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _registrarse,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryPurpleHover,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text(
-              'Registrarse',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+          const SizedBox(height: 30),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _registrarse,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryPurpleHover,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text(
+                'Registrarse',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 15),
-        Center(
-          child: TextButton(
-            onPressed: () => setState(() => isLoginView = true),
-            child: const Text(
-              '¿Ya tienes cuenta? Inicia sesión aquí',
-              style: TextStyle(color: AppColors.primaryPurple),
+          const SizedBox(height: 15),
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() => isLoginView = true),
+              child: const Text(
+                '¿Ya tienes cuenta? Inicia sesión aquí',
+                style: TextStyle(color: AppColors.primaryPurple),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -264,72 +284,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // VISTA: FORMULARIO DE INICIO DE SESIÓN
   // ==========================================
   Widget _buildLoginForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Iniciar Sesión',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Bienvenido de nuevo a Musilux.',
-          style: TextStyle(color: Colors.black54),
-        ),
-        const SizedBox(height: 30),
+    return Form(
+      key: _loginFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Iniciar Sesión',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Bienvenido de nuevo a Musilux.',
+            style: TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 30),
 
-        _buildTextField(
-          'Correo electrónico',
-          controller: _correoController,
-          isEmail: true,
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          'Contraseña',
-          controller: _passwordController,
-          isPassword: true,
-        ),
+          _buildTextFormField(
+            'Correo electrónico',
+            controller: _correoController,
+            isEmail: true,
+            validator: (value) {
+              if (value!.isEmpty) return 'Por favor, ingresa tu correo';
+              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                return 'Ingresa un correo válido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildTextFormField(
+            'Contraseña',
+            controller: _passwordController,
+            isPassword: true,
+            validator: (value) =>
+                value!.isEmpty ? 'Por favor, ingresa tu contraseña' : null,
+          ),
 
-        const SizedBox(height: 30),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _iniciarSesion,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryPurpleHover,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text(
-              'Ingresar',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+          const SizedBox(height: 30),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _iniciarSesion,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryPurpleHover,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text(
+                'Ingresar',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 15),
-        Center(
-          child: TextButton(
-            onPressed: () => setState(() => isLoginView = false),
-            child: const Text(
-              '¿No tienes cuenta? Regístrate aquí',
-              style: TextStyle(color: AppColors.primaryPurple),
+          const SizedBox(height: 15),
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() => isLoginView = false),
+              child: const Text(
+                '¿No tienes cuenta? Regístrate aquí',
+                style: TextStyle(color: AppColors.primaryPurple),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // Helper para construir los inputs
-  Widget _buildTextField(
+  // Helper para construir los inputs con validación
+  Widget _buildTextFormField(
     String label, {
     required TextEditingController controller,
     bool isPassword = false,
     bool isEmail = false,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

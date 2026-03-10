@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
+import 'package:musilux/product.dart';
 
 class InstrumentsScreen extends StatefulWidget {
-  const InstrumentsScreen({Key? key}) : super(key: key);
+  const InstrumentsScreen({super.key});
 
   @override
   State<InstrumentsScreen> createState() => _InstrumentsScreenState();
@@ -33,12 +34,13 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
     final isMobile = screenWidth < 800;
 
     int crossAxisCount = 4;
-    if (screenWidth < 600)
+    if (screenWidth < 600) {
       crossAxisCount = 1;
-    else if (screenWidth < 900)
+    } else if (screenWidth < 900) {
       crossAxisCount = 2;
-    else if (screenWidth < 1200)
+    } else if (screenWidth < 1200) {
       crossAxisCount = 3;
+    }
 
     var filteredProducts = _instrumentosProducts.where((product) {
       if (_selectedCategory == 'Todos') return true;
@@ -119,14 +121,24 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                     itemCount: filteredProducts.length,
                     itemBuilder: (context, index) {
                       final item = filteredProducts[index];
+                      // Convertimos el mapa a un objeto Product
+                      final product = Product(
+                        id: item['id'] as String,
+                        name: item['title'] as String,
+                        description: 'Instrumento musical profesional',
+                        price: item['price'] as double,
+                        imageUrl: item['image'] as String,
+                        category: (item['tags'] as List).join(', '),
+                      );
+
                       return ProductCard(
-                        title: item['title'],
-                        price: item['price'],
-                        tags: item['tags'],
-                        imageUrl: item['image'],
-                        isSale: item['isSale'],
-                        onDetailsTap: () =>
-                            Navigator.pushNamed(context, '/detalle'),
+                        product: product,
+                        isSale: item['isSale'] as bool? ?? false,
+                        onDetailsTap: () => Navigator.pushNamed(
+                          context,
+                          '/detalle-producto',
+                          arguments: product,
+                        ),
                       );
                     },
                   ),
@@ -207,6 +219,7 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
 
 final List<Map<String, dynamic>> _instrumentosProducts = [
   {
+    'id': 'inst-001',
     'title': 'Guitarra Eléctrica Fender',
     'price': 18500.00,
     'tags': ['Guitarras', 'Profesional'],
@@ -214,6 +227,7 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'isSale': false,
   },
   {
+    'id': 'inst-002',
     'title': 'Batería Acústica Yamaha',
     'price': 15499.00,
     'tags': ['Baterías', 'Oferta'],
@@ -222,6 +236,7 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'isSale': true,
   },
   {
+    'id': 'inst-003',
     'title': 'Bajo Eléctrico Ibanez',
     'price': 7200.00,
     'tags': ['Bajos'],
@@ -229,6 +244,7 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'isSale': false,
   },
   {
+    'id': 'inst-004',
     'title': 'Teclado Korg 61 Teclas',
     'price': 8200.00,
     'tags': ['Teclados', 'Oferta'],
@@ -237,6 +253,7 @@ final List<Map<String, dynamic>> _instrumentosProducts = [
     'isSale': true,
   },
   {
+    'id': 'inst-005',
     'title': 'Guitarra Acústica Taylor',
     'price': 9500.00,
     'tags': ['Guitarras', 'Acústica'],

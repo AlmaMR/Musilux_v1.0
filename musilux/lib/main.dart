@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musilux/screens/contact_screen.dart';
+import 'package:musilux/product.dart';
 import 'theme/colors.dart'; // Asegúrate de tener este archivo
 import 'screens/home_screen.dart';
 import 'screens/lighting_screen.dart';
@@ -31,7 +32,11 @@ class MusiluxApp extends StatelessWidget {
         '/iluminacion': (context) => const LightingScreen(),
         '/vinilos': (context) => const VinylsScreen(),
         '/contacto': (context) => const ContactScreen(),
-        '/detalle-producto': (context) => const ProductDetailScreen(),
+        '/detalle-producto': (context) {
+          // Extrae el producto pasado como argumento desde la pantalla anterior.
+          final product = ModalRoute.of(context)!.settings.arguments as Product;
+          return ProductDetailScreen(product: product);
+        },
         '/perfil': (context) => const ProfileScreen(),
       },
     );

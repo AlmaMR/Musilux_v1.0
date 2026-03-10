@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
+import 'package:musilux/product.dart'; // Importa el modelo Product
 
 class LightingScreen extends StatefulWidget {
-  const LightingScreen({Key? key}) : super(key: key);
+  const LightingScreen({super.key});
 
   @override
   State<LightingScreen> createState() => _LightingScreenState();
@@ -33,26 +34,44 @@ class _LightingScreenState extends State<LightingScreen> {
     final isMobile = screenWidth < 800;
 
     int crossAxisCount = 4;
-    if (screenWidth < 600)
+    if (screenWidth < 600) {
       crossAxisCount = 1;
-    else if (screenWidth < 900)
+    } else if (screenWidth < 900) {
       crossAxisCount = 2;
-    else if (screenWidth < 1200)
+    } else if (screenWidth < 1200) {
       crossAxisCount = 3;
+    }
 
-    var filteredProducts = _iluminacionProducts.where((product) {
+    // Convertimos los datos estáticos a objetos Product para consistencia
+    var allLightingProducts = _iluminacionProducts
+        .map(
+          (item) => Product(
+            id: item['id'] as String,
+            name: item['title'] as String,
+            description:
+                item['description'] as String? ??
+                'Sin descripción disponible.', // Añadimos descripción
+            price: item['price'] as double,
+            imageUrl: item['image'] as String,
+            category: (item['tags'] as List).join(
+              ', ',
+            ), // Unimos las etiquetas en una sola cadena para la categoría
+          ),
+        )
+        .toList();
+
+    var filteredProducts = allLightingProducts.where((product) {
       if (_selectedCategory == 'Todos') return true;
-      return (product['tags'] as List).contains(_selectedCategory);
+      return product.category.contains(
+        _selectedCategory,
+      ); // Verificamos si la cadena de categoría contiene la categoría seleccionada
     }).toList();
 
+    // Lógica de ordenamiento para objetos Product
     if (_selectedSort == 'Precio: Menor a Mayor') {
-      filteredProducts.sort(
-        (a, b) => (a['price'] as double).compareTo(b['price'] as double),
-      );
+      filteredProducts.sort((a, b) => a.price.compareTo(b.price));
     } else if (_selectedSort == 'Precio: Mayor a Menor') {
-      filteredProducts.sort(
-        (a, b) => (b['price'] as double).compareTo(a['price'] as double),
-      );
+      filteredProducts.sort((a, b) => b.price.compareTo(a.price));
     }
 
     return BaseLayout(
@@ -119,14 +138,17 @@ class _LightingScreenState extends State<LightingScreen> {
                     itemCount: filteredProducts.length,
                     itemBuilder: (context, index) {
                       final item = filteredProducts[index];
+                      // Pasamos el objeto Product directamente a ProductCard
                       return ProductCard(
-                        title: item['title'],
-                        price: item['price'],
-                        tags: item['tags'],
-                        imageUrl: item['image'],
-                        isSale: item['isSale'],
-                        onDetailsTap: () =>
-                            Navigator.pushNamed(context, '/detalle'),
+                        product: item,
+                        isSale:
+                            _iluminacionProducts[index]['isSale']
+                                as bool, // Mantenemos el estado de oferta original
+                        onDetailsTap: () => Navigator.pushNamed(
+                          context,
+                          '/detalle-producto',
+                          arguments: item, // Pasamos el objeto Product completo
+                        ),
                       );
                     },
                   ),
@@ -207,6 +229,7 @@ class _LightingScreenState extends State<LightingScreen> {
 
 final List<Map<String, dynamic>> _iluminacionProducts = [
   {
+    'id': 'light-001',
     'title': 'Cabeza Móvil Beam 230W',
     'price': 4500.00,
     'tags': ['Profesional', 'LED'],
@@ -215,6 +238,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'isSale': false,
   },
   {
+    'id': 'light-002',
     'title': 'Láser RGB Animación',
     'price': 2800.00,
     'tags': ['DJ', 'Láser'],
@@ -223,6 +247,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'isSale': true,
   },
   {
+    'id': 'light-003',
     'title': 'Máquina de Humo 1500W',
     'price': 1200.00,
     'tags': ['FX', 'Humo'],
@@ -231,6 +256,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'isSale': false,
   },
   {
+    'id': 'light-004',
     'title': 'Barra LED Ultravioleta UV',
     'price': 850.00,
     'tags': ['Neón', 'LED'],
@@ -239,6 +265,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'isSale': false,
   },
   {
+    'id': 'light-005',
     'title': 'Par LED 54x3W RGBW',
     'price': 650.00,
     'tags': ['Escenario', 'LED'],
@@ -247,6 +274,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'isSale': true,
   },
   {
+    'id': 'light-006',
     'title': 'Controlador DMX 512',
     'price': 1400.00,
     'tags': ['Control', 'Profesional'],

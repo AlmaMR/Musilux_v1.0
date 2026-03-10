@@ -143,12 +143,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         backgroundColor: AppColors.primaryPurple.withValues(
                           alpha: 0.1,
                         ),
-                        child: Text(product.tipoProducto[0].toUpperCase()),
+                        child: Text(product.category[0].toUpperCase()),
                       ),
-                      title: Text(product.nombre),
-                      subtitle: Text(
-                        '\$${product.precio} - Stock: ${product.inventario}',
-                      ),
+                      title: Text(product.name),
+                      subtitle: Text('\$${product.price}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -190,23 +188,21 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late TextEditingController _slugCtrl;
   late TextEditingController _descCtrl;
   late TextEditingController _precioCtrl;
-  late TextEditingController _invCtrl;
-  late TextEditingController _bpmCtrl;
-  String _tipoProducto = 'fisico';
-  bool _estaActivo = true;
+  late TextEditingController _categoryCtrl;
+  late TextEditingController _imageUrlCtrl;
 
   @override
   void initState() {
     super.initState();
     final p = widget.product;
-    _nombreCtrl = TextEditingController(text: p?.nombre ?? '');
-    _slugCtrl = TextEditingController(text: p?.slug ?? '');
-    _descCtrl = TextEditingController(text: p?.descripcion ?? '');
-    _precioCtrl = TextEditingController(text: p?.precio.toString() ?? '');
-    _invCtrl = TextEditingController(text: p?.inventario.toString() ?? '');
-    _bpmCtrl = TextEditingController(text: p?.bpm?.toString() ?? '');
-    _tipoProducto = p?.tipoProducto ?? 'fisico';
-    _estaActivo = p?.estaActivo ?? true;
+    _nombreCtrl = TextEditingController(text: p?.name ?? '');
+    _slugCtrl = TextEditingController(
+      text: '',
+    ); // Slug no presente en ProductModel base
+    _descCtrl = TextEditingController(text: p?.description ?? '');
+    _precioCtrl = TextEditingController(text: p?.price.toString() ?? '');
+    _categoryCtrl = TextEditingController(text: p?.category ?? 'General');
+    _imageUrlCtrl = TextEditingController(text: p?.imageUrl ?? '');
   }
 
   @override
@@ -233,21 +229,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 },
               ),
               TextFormField(
-                controller: _slugCtrl,
-                decoration: const InputDecoration(labelText: 'Slug'),
+                controller: _categoryCtrl,
+                decoration: const InputDecoration(labelText: 'Categoría'),
                 validator: (v) => v!.isEmpty ? 'Requerido' : null,
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: _tipoProducto,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Producto',
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'fisico', child: Text('Físico')),
-                  DropdownMenuItem(value: 'digital', child: Text('Digital')),
-                  DropdownMenuItem(value: 'servicio', child: Text('Servicio')),
-                ],
-                onChanged: (v) => setState(() => _tipoProducto = v!),
               ),
               Row(
                 children: [
@@ -259,33 +243,17 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                       validator: (v) => v!.isEmpty ? 'Requerido' : null,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _invCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Inventario',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                    ),
-                  ),
                 ],
               ),
               TextFormField(
-                controller: _bpmCtrl,
-                decoration: const InputDecoration(labelText: 'BPM (Opcional)'),
-                keyboardType: TextInputType.number,
+                controller: _imageUrlCtrl,
+                decoration: const InputDecoration(labelText: 'URL de Imagen'),
+                validator: (v) => v!.isEmpty ? 'Requerido' : null,
               ),
               TextFormField(
                 controller: _descCtrl,
                 decoration: const InputDecoration(labelText: 'Descripción'),
                 maxLines: 2,
-              ),
-              SwitchListTile(
-                title: const Text('Activo'),
-                value: _estaActivo,
-                onChanged: (v) => setState(() => _estaActivo = v),
               ),
             ],
           ),
@@ -301,14 +269,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
             if (_formKey.currentState!.validate()) {
               final newProduct = ProductModel(
                 id: widget.product?.id,
-                nombre: _nombreCtrl.text,
-                slug: _slugCtrl.text,
-                descripcion: _descCtrl.text,
-                tipoProducto: _tipoProducto,
-                precio: double.parse(_precioCtrl.text),
-                inventario: int.parse(_invCtrl.text),
-                bpm: int.tryParse(_bpmCtrl.text),
-                estaActivo: _estaActivo,
+                name: _nombreCtrl.text,
+                description: _descCtrl.text,
+                price: double.parse(_precioCtrl.text),
+                imageUrl: _imageUrlCtrl.text,
+                category: _categoryCtrl.text,
               );
               widget.onSave(newProduct);
             }
