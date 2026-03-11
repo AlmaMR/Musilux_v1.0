@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:musilux/models/product.dart';
+import 'package:musilux/services/api_service.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<List<Product>> _productsFuture;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Podríamos tener un endpoint específico para ofertas, pero por ahora traemos todos.
+    _productsFuture = _apiService.fetchProducts();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,14 +30,14 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BANNER PRINCIPAL
+          // BANNER PRINCIPAL (sin cambios)
           Container(
             width: double.infinity,
             height: isMobile ? 250 : 400,
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: const NetworkImage(
-                  'https://scontent.fgdl9-1.fna.fbcdn.net/v/t39.30808-6/485421080_1090799343060869_8054663387557638822_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=110&ccb=1-7&_nc_sid=7b2446&_nc_ohc=5tu6MwW-JMgQ7kNvwHIPcSu&_nc_oc=Adk1glrbuPw9NLMwTsbyZdmbku8NrpmPY5ReBPZKHBu3FjjMAImLaHtLYAyNzFTOjDw&_nc_zt=23&_nc_ht=scontent.fgdl9-1.fna&_nc_gid=9QXx4Agu7CIfeQ8Vx_xTEg&_nc_ss=8&oh=00_AfxjQA8Ab-Rkis26mL-B0T7iTjckAOa3uIA59fzg--ZllQ&oe=69AFB2D9',
+                  'https://scontent.ftpq1-1.fna.fbcdn.net/v/t39.30808-6/474271411_1043605514446919_7181129950938001225_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=2a1932&_nc_eui2=AeHXNpbO7QC7jtwJROPcZGDL2sHPTG50jv_awc9MbnSO_9lCsTgey_YkZ14aaaVKwUyFI_i-PeqHPnjyAoNU4VtI&_nc_ohc=O6GYxOj6bpsQ7kNvwEIjJx6&_nc_oc=AdkI3gHI5r7VvaFNOVISjCjqwyqNUQAiPHxg_TrgdNfa5Y3A4hw4O1GBzq6X92XHUYU&_nc_zt=23&_nc_ht=scontent.ftpq1-1.fna&_nc_gid=mLLU6rsm3oFAAqLKgRhnZw&_nc_ss=8&oh=00_AfxDoWsTaTtKpQ23J-29fPH4JESmqM9dl9WMrqcG3MaGiA&oe=69B6293C',
                 ),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
@@ -67,7 +84,7 @@ class HomeScreen extends StatelessWidget {
 
           const SizedBox(height: 40),
 
-          // SECCIÓN: CATEGORÍAS (Carrusel Continuo Duplicado)
+          // SECCIÓN: CATEGORÍAS (sin cambios)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
             child: const Text(
@@ -76,14 +93,12 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-
           SizedBox(
             height: 180,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
               children: [
-                // Set original
                 CategoryCard(
                   width: 320,
                   title: 'Instrumentos',
@@ -110,41 +125,13 @@ class HomeScreen extends StatelessWidget {
                       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJVPVcvu-yGVS4NFvor8Dmz97wDYj3ZETMsA&s',
                   onTap: () => Navigator.pushNamed(context, '/vinilos'),
                 ),
-                const SizedBox(width: 16),
-                // Set Duplicado para rellenar pantalla de PC y hacer efecto carrusel
-                CategoryCard(
-                  width: 320,
-                  title: 'Instrumentos',
-                  subtitle: 'Guitarras, Bajos, Baterías',
-                  imageUrl:
-                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlJUWXrueZ5TbCCOf0m3_CCQW2OVwsiHjR0g&s',
-                  onTap: () => Navigator.pushNamed(context, '/instrumentos'),
-                ),
-                const SizedBox(width: 16),
-                CategoryCard(
-                  width: 320,
-                  title: 'Iluminación',
-                  subtitle: 'Luces, Láser, Humo',
-                  imageUrl:
-                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSg2Q254ZdlDEK0mCiDff8ODejXJzMC0SQf0Q&s',
-                  onTap: () => Navigator.pushNamed(context, '/iluminacion'),
-                ),
-                const SizedBox(width: 16),
-                CategoryCard(
-                  width: 320,
-                  title: 'Vinilos',
-                  subtitle: 'Tus artistas favoritos',
-                  imageUrl:
-                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJ2Pf-McB32UKwDN-cfrFIcs9yt63zAO7fYA&s',
-                  onTap: () => Navigator.pushNamed(context, '/vinilos'),
-                ),
               ],
             ),
           ),
 
           const SizedBox(height: 50),
 
-          // SECCIÓN: PROMOCIONES (Altura corregida para que las tarjetas se vean hermosas)
+          // SECCIÓN: PROMOCIONES (Refactorizada)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
             child: const Text(
@@ -157,72 +144,58 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Contenedor a 350 de altura. Ahora ProductCard se adaptará perfecto.
           SizedBox(
             height: 350,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
-              children: [
-                ProductCard(
-                  isSale: true,
-                  title: 'Batería Acústica Yamaha',
-                  price: 15499.00,
-                  tags: ['Baterías', 'Oferta'],
-                  imageUrl:
-                      'https://m.media-amazon.com/images/S/aplus-media-library-service-media/e04da6f5-c8dd-43a8-b82a-ef27cb61cec2.__CR0,0,600,600_PT0_SX300_V1___.png',
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/producto/bateria'),
-                ),
-                const SizedBox(width: 20),
-                ProductCard(
-                  isSale: true,
-                  title: 'Controlador DJ Pioneer',
-                  price: 6200.00,
-                  tags: ['Audio', 'DJ'],
-                  imageUrl:
-                      'https://m.media-amazon.com/images/I/81O80Pn0ZsL._AC_UF1000,1000_QL80_.jpg',
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/producto/dj'),
-                ),
-                const SizedBox(width: 20),
-                ProductCard(
-                  isSale: true,
-                  title: 'Guitarra Acústica Taylor',
-                  price: 9500.00,
-                  tags: ['Guitarras', 'Acústica'],
-                  imageUrl:
-                      'https://m.media-amazon.com/images/I/7115TB+TXeL.jpg',
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/producto/taylor'),
-                ),
-                const SizedBox(width: 20),
-                ProductCard(
-                  isSale: true,
-                  title: 'Sliver - Nirvana (Vinilo)',
-                  price: 299.99,
-                  tags: ['Vinilo', 'Rock'],
-                  imageUrl:
-                      'https://m.media-amazon.com/images/I/81oDljdj-FL._UF1000,1000_QL80_.jpg',
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/producto/sliver'),
-                ),
-                const SizedBox(width: 20),
-                ProductCard(
-                  isSale: true,
-                  title: 'Teclado Korg 61 Teclas',
-                  price: 8200.00,
-                  tags: ['Teclados', 'Oferta'],
-                  imageUrl:
-                      'https://m.media-amazon.com/images/I/51Pm9zO5QIL._AC_UF350,350_QL80_.jpg',
-                  onDetailsTap: () =>
-                      Navigator.pushNamed(context, '/producto/teclado'),
-                ),
-              ],
+            child: FutureBuilder<List<Product>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  // Muestra un error más descriptivo en la UI.
+                  return Center(
+                    child: Text(
+                      'Error al cargar ofertas: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No hay ofertas disponibles.'));
+                }
+
+                // Filtramos los productos que están en oferta
+                final saleProducts = snapshot.data!.where((p) => p.isSale).toList();
+
+                if (saleProducts.isEmpty) {
+                  return const Center(child: Text('No hay ofertas especiales en este momento.'));
+                }
+
+                return ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
+                  itemCount: saleProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = saleProducts[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 20),
+                      child: ProductCard(
+                        isSale: product.isSale,
+                        title: product.title,
+                        price: product.price,
+                        tags: product.tags,
+                        imageUrl: product.imageUrl,
+                        onDetailsTap: () => Navigator.pushNamed(
+                          context,
+                          '/detalle-producto',
+                          arguments: product.id, // Pasamos el ID del producto
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
-
           const SizedBox(height: 60),
         ],
       ),
