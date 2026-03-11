@@ -412,7 +412,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
 class _ColorCircle extends StatelessWidget {
   final Color color;
-  const _ColorCircle(this.color, {super.key});
+  const _ColorCircle(this.color);
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +441,6 @@ class _TestTab extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TestTab({
-    super.key,
     required this.title,
     required this.isSelected,
     required this.onTap,
@@ -471,7 +470,7 @@ class _TestTab extends StatelessWidget {
 
 class _Thumbnail extends StatelessWidget {
   final String url;
-  const _Thumbnail(this.url, {super.key});
+  const _Thumbnail(this.url);
 
   @override
   Widget build(BuildContext context) {

@@ -3,7 +3,7 @@ import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class ContactScreen extends StatelessWidget {
-  const ContactScreen({Key? key}) : super(key: key);
+  const ContactScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
