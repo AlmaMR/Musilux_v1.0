@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 import '../models/product.dart';
+import '../api_constants.dart';
 
 class ApiService {
-  // Usamos 10.0.2.2 para conectar al localhost de la máquina host desde el emulador de Android.
-  // El puerto 8000 es el default de `php artisan serve`.
-  final String _baseUrl = kIsWeb ? 'http://localhost:8000/api' : 'http://10.0.2.2:8000/api';
+  final String _baseUrl = ApiConstants.baseUrl;
 
   Future<List<Product>> fetchProducts({String? category}) async {
     // El backend espera el slug de la categoría, no el nombre.
@@ -22,7 +20,16 @@ class ApiService {
       if (response.statusCode == 200) {
         // La API de Laravel envuelve la data en una clave "data" por defecto en los Resources.
         final List<dynamic> productData = json.decode(response.body)['data'];
-        return productData.map((json) => Product.fromJson(json)).toList();
+
+        return productData.map((item) {
+          try {
+            return Product.fromJson(item);
+          } catch (e) {
+            print('Error parseando producto: $item');
+            print('Error específico: $e');
+            rethrow; // Re-lanzamos para ver el error en consola
+          }
+        }).toList();
       } else {
         // Log del error para facilitar el debugging.
         print('Error en la petición: ${response.statusCode}');
@@ -32,7 +39,9 @@ class ApiService {
     } catch (e) {
       // Captura errores de conexión o parsing.
       print('Error de conexión o al procesar la respuesta: $e');
-      throw Exception('No se pudo conectar al servidor o procesar la respuesta.');
+      throw Exception(
+        'No se pudo conectar al servidor o procesar la respuesta.',
+      );
     }
   }
 
@@ -53,7 +62,67 @@ class ApiService {
       }
     } catch (e) {
       print('Error de conexión o al procesar la respuesta: $e');
-      throw Exception('No se pudo conectar al servidor o procesar la respuesta.');
+      throw Exception(
+        'No se pudo conectar al servidor o procesar la respuesta.',
+      );
+    }
+  }
+
+  // --- MÉTODOS CRUD PARA ADMIN ---
+
+  // Crear producto (POST)
+  Future<bool> createProduct(Product product) async {
+    final String url = '$_baseUrl/products';
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(product.toJson()),
+      );
+
+      // 201 Created es el standard
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return true;
+      }
+      print('Error al crear: ${response.body}');
+      return false;
+    } catch (e) {
+      print('Error createProduct: $e');
+      return false;
+    }
+  }
+
+  // Actualizar producto (PUT)
+  Future<bool> updateProduct(String id, Product product) async {
+    final String url = '$_baseUrl/products/$id';
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(product.toJson()),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error updateProduct: $e');
+      return false;
+    }
+  }
+
+  // Eliminar producto (DELETE)
+  Future<bool> deleteProduct(String id) async {
+    final String url = '$_baseUrl/products/$id';
+    try {
+      final response = await http.delete(Uri.parse(url));
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('Error deleteProduct: $e');
+      return false;
     }
   }
 }
