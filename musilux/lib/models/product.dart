@@ -3,6 +3,8 @@ class Product {
   final String title;
   final double price;
   final String imageUrl;
+  final String slug; // Nuevo campo SQL
+  final int stock; // Nuevo campo SQL (inventario)
   final List<String> tags;
   final bool isSale;
   final String? description;
@@ -14,6 +16,8 @@ class Product {
     required this.title,
     required this.price,
     required this.imageUrl,
+    this.slug = '',
+    this.stock = 0,
     this.tags = const [],
     this.isSale = false,
     this.description,
@@ -27,15 +31,36 @@ class Product {
     // Y 'titulo', 'precio', 'desc', 'img', 'specs', 'tipo_producto' para el detalle.
     // Este factory intenta ser flexible.
     return Product(
-      id: json['id'] as String,
-      title: json['title'] ?? json['titulo'] as String,
-      price: (json['price'] as num).toDouble(),
-      imageUrl: json['imageUrl'] ?? json['img'] as String,
+      id: json['id']?.toString() ?? '0',
+      title: (json['title'] ?? json['titulo'] ?? 'Sin título').toString(),
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      imageUrl: (json['imageUrl'] ?? json['img'] ?? '').toString(),
+      slug: (json['slug'] ?? '').toString(),
+      stock: (json['inventario'] as num?)?.toInt() ?? 0,
       tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
-      isSale: json['isSale'] ?? false,
+      isSale:
+          json['esta_activo'] == 1 ||
+          json['esta_activo'] == true, // Mapeo a boolean
       description: json['desc'] as String?,
       specs: json['specs'] != null ? List<String>.from(json['specs']) : null,
       productType: json['tipo_producto'] as String?,
     );
+  }
+
+  // Método para enviar datos al Backend (SQL)
+  Map<String, dynamic> toJson() {
+    return {
+      'nombre': title,
+      'slug': slug.isEmpty
+          ? title.toLowerCase().replaceAll(' ', '-')
+          : slug, // Generación simple de slug
+      'precio': price,
+      'descripcion': description,
+      'inventario': stock,
+      'tipo_producto': productType ?? 'fisico',
+      // Asumimos que el backend maneja la imagen recibiendo una URL por ahora
+      'url_imagen': imageUrl,
+      'esta_activo': isSale,
+    };
   }
 }

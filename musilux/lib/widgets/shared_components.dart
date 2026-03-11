@@ -104,6 +104,17 @@ class CustomHeader extends StatelessWidget {
             ),
             onPressed: () => Scaffold.of(context).openEndDrawer(),
           ),
+
+          // --- NUEVO BOTÓN ADMIN ---
+          IconButton(
+            icon: const Icon(
+              Icons.admin_panel_settings_outlined,
+              color: Colors.white70,
+            ),
+            tooltip: 'Admin Productos',
+            onPressed: () => Navigator.pushNamed(context, '/admin_products'),
+          ),
+
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white70),
             onPressed: () => Navigator.pushNamed(context, '/perfil'),
