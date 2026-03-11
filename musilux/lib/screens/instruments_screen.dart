@@ -3,7 +3,7 @@ import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class InstrumentsScreen extends StatefulWidget {
-  const InstrumentsScreen({Key? key}) : super(key: key);
+  const InstrumentsScreen({super.key});
 
   @override
   State<InstrumentsScreen> createState() => _InstrumentsScreenState();
@@ -33,9 +33,9 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
     final isMobile = screenWidth < 800;
 
     int crossAxisCount = 4;
-    if (screenWidth < 600)
+    if (screenWidth < 600) {
       crossAxisCount = 1;
-    else if (screenWidth < 900)
+    } else if (screenWidth < 900)
       crossAxisCount = 2;
     else if (screenWidth < 1200)
       crossAxisCount = 3;

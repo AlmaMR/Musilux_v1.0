@@ -3,7 +3,7 @@ import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -30,6 +30,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _correoController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Función para validar la contraseña
+  bool _isValidPassword(String password) {
+    if (password.length < 10) return false;
+    int digitCount = RegExp(r'\d').allMatches(password).length;
+    return digitCount >= 2;
   }
 
   // Función para simular el registro
