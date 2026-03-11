@@ -14,7 +14,7 @@ void main() {
 }
 
 class MusiluxApp extends StatelessWidget {
-  const MusiluxApp({Key? key}) : super(key: key);
+  const MusiluxApp({super.key});
 
   @override
   Widget build(BuildContext context) {

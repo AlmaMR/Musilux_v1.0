@@ -3,7 +3,7 @@ import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class LightingScreen extends StatefulWidget {
-  const LightingScreen({Key? key}) : super(key: key);
+  const LightingScreen({super.key});
 
   @override
   State<LightingScreen> createState() => _LightingScreenState();
@@ -33,9 +33,9 @@ class _LightingScreenState extends State<LightingScreen> {
     final isMobile = screenWidth < 800;
 
     int crossAxisCount = 4;
-    if (screenWidth < 600)
+    if (screenWidth < 600) {
       crossAxisCount = 1;
-    else if (screenWidth < 900)
+    } else if (screenWidth < 900)
       crossAxisCount = 2;
     else if (screenWidth < 1200)
       crossAxisCount = 3;
@@ -211,7 +211,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'price': 4500.00,
     'tags': ['Profesional', 'LED'],
     'image':
-        '[https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600](https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600)',
+        'https://m.media-amazon.com/images/I/41fmKWKV0nL._AC_UF894,1000_QL80_.jpg',
     'isSale': false,
   },
   {
@@ -219,7 +219,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'price': 2800.00,
     'tags': ['DJ', 'Láser'],
     'image':
-        '[https://images.unsplash.com/photo-1470229722913-7c090bf356c4?w=600](https://images.unsplash.com/photo-1470229722913-7c090bf356c4?w=600)',
+        'https://m.media-amazon.com/images/I/71CVXK+vXfL._AC_UF894,1000_QL80_.jpg',
     'isSale': true,
   },
   {
@@ -227,7 +227,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'price': 1200.00,
     'tags': ['FX', 'Humo'],
     'image':
-        '[https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600](https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600)',
+        'https://m.media-amazon.com/images/I/61cflmAri4L._AC_UF1000,1000_QL80_.jpg',
     'isSale': false,
   },
   {
@@ -235,7 +235,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'price': 850.00,
     'tags': ['Neón', 'LED'],
     'image':
-        '[https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=600](https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=600)',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTjCQBd1vJMazO6fzzaMRHLCww_omyUi5waw&s',
     'isSale': false,
   },
   {
@@ -243,7 +243,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'price': 650.00,
     'tags': ['Escenario', 'LED'],
     'image':
-        '[https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600](https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600)',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSdQDcWOHDlB8yvlO4_qFQuP-u8gV8VISi72Q&s',
     'isSale': true,
   },
   {
@@ -251,7 +251,7 @@ final List<Map<String, dynamic>> _iluminacionProducts = [
     'price': 1400.00,
     'tags': ['Control', 'Profesional'],
     'image':
-        '[https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600](https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600)',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQBVDWXr07n7P8kU0e2WqFfaP1MnF6jbgRjA&s',
     'isSale': false,
   },
 ];

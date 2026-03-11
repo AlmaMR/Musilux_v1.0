@@ -5,7 +5,7 @@ import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  const ProductDetailScreen({Key? key}) : super(key: key);
+  const ProductDetailScreen({super.key});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -36,89 +36,165 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
     }
   }
+  // Estado para controlar qué vista de prueba mostrar
+  String _tipoProducto = 'vinilo'; // 'vinilo', 'instrumento', 'iluminacion'
+
+  // Datos mockeados para cada tipo de producto
+  final Map<String, dynamic> _datos = {
+    'vinilo': {
+      'titulo': 'Unplugged in New York - Nirvana',
+      'precio': '\$999.99',
+      'desc':
+          'El vinilo de Nirvana - MTV Unplugged in New York es una grabación histórica en vivo de noviembre de 1993, lanzada póstumamente en 1994, que destaca por su formato acústico e íntimo.',
+      'specs': [
+        'Producto descontinuado: No',
+        'Dimensiones: 31 x 31 cm',
+        'ASIN: B00004WP7P',
+        'Número de discos: 1',
+      ],
+      'img':
+          'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
+    },
+    'instrumento': {
+      'titulo': 'Guitarra Eléctrica Fender',
+      'precio': '\$18500.00',
+      'desc':
+          'La Fender Kurt Cobain Jag-Stang es una guitarra eléctrica signature diseñada por el líder de Nirvana, lanzada originalmente en los 90, que fusiona características de los modelos Jaguar y Mustang. Destaca por su cuerpo de aliso, escala corta de 24 pulgadas, mástil de arce con diapasón de palisandro y una configuración de pastillas versátil (Humbucker en puente, Single-Coil en mástil) ideal para el sonido grunge.',
+      'specs': [
+        'Cuerpo: Aliso',
+        'Mástil: Arce',
+        'Trastes: 22 Medium Jumbo',
+        'Pastillas: 3x Single-Coil',
+      ],
+      'img': 'https://m.media-amazon.com/images/I/61aAV9OZz8L._AC_SY879_.jpg',
+    },
+    'iluminacion': {
+      'titulo': 'Foco Láser LED RGB',
+      'precio': '\$850.00',
+      'desc':
+          'Foco láser profesional con tecnología LED RGB. Perfecto para escenarios, discotecas y eventos en vivo. Controlable vía DMX o de forma automática rítmica.',
+      'specs': [
+        'Potencia: 50W',
+        'Canales DMX: 7',
+        'Modos: Auto, Audio rítmico, DMX',
+        'Vida útil LED: 50,000 hrs',
+      ],
+      'img':
+          'https://m.media-amazon.com/images/I/81u4qN9tV5L._AC_UF1000,1000_QL80_.jpg',
+    },
+  };
 
   @override
   Widget build(BuildContext context) {
     return BaseLayout(
       child: Padding(
         padding: const EdgeInsets.all(40),
-        child: _productId == null 
-            ? const Center(child: Text("No se ha seleccionado un producto."))
-            : FutureBuilder<Product>(
-                future: _productFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error al cargar el producto: ${snapshot.error}'));
-                  } else if (!snapshot.hasData) {
-                    return const Center(child: Text('Producto no encontrado.'));
-                  }
-
-                  final product = snapshot.data!;
-                  return _buildProductDetails(context, product);
-                },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // PANEL DE VISTA DE PRUEBA
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.tagBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primaryPurple.withValues(alpha: 0.3),
+                ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildProductDetails(BuildContext context, Product product) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(40),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Columna Izquierda: Imágenes
-          Expanded(
-            flex: 5,
-            child: Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    product.imageUrl,
-                    height: 300,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, size: 50),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.science,
+                    color: AppColors.primaryPurple,
+                    size: 20,
                   ),
-                ),
-                const SizedBox(height: 20),
-                // Galería de thumbnails (actualmente estática)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.arrow_back_ios, size: 16),
-                    const SizedBox(width: 10),
-                    _Thumbnail(product.imageUrl),
-                    const SizedBox(width: 10),
-                    const _Thumbnail(
-                      'https://images.unsplash.com/photo-1619983081563-430f63602796?w=100',
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Vista de Prueba:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryPurple,
                     ),
-                    const SizedBox(width: 10),
-                    const _Thumbnail(
-                      'https://images.unsplash.com/photo-1484882195048-0d3ee78b87ee?w=100',
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.arrow_forward_ios, size: 16),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(width: 16),
+                  _TestTab(
+                    title: 'Vinilo',
+                    isSelected: _tipoProducto == 'vinilo',
+                    onTap: () => setState(() => _tipoProducto = 'vinilo'),
+                  ),
+                  const SizedBox(width: 8),
+                  _TestTab(
+                    title: 'Instrumentos',
+                    isSelected: _tipoProducto == 'instrumento',
+                    onTap: () => setState(() => _tipoProducto = 'instrumento'),
+                  ),
+                  const SizedBox(width: 8),
+                  _TestTab(
+                    title: 'Iluminación',
+                    isSelected: _tipoProducto == 'iluminacion',
+                    onTap: () => setState(() => _tipoProducto = 'iluminacion'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 40),
+            const SizedBox(height: 30),
+
+            // CONTENEDOR PRINCIPAL DEL PRODUCTO
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(40),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Columna Izquierda: Imágenes
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            productoActual['img'],
+                            height: 300,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.arrow_back_ios, size: 16),
+                            const SizedBox(width: 10),
+                            _Thumbnail(productoActual['img']),
+                            const SizedBox(width: 10),
+                            const _Thumbnail(
+                              'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
+                            ),
+                            const SizedBox(width: 10),
+                            const _Thumbnail(
+                              'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
+                            ),
+                            const SizedBox(width: 10),
+                            const Icon(Icons.arrow_forward_ios, size: 16),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 40),
 
           // Columna Derecha: Info
           Expanded(
@@ -314,7 +390,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
 class _ColorCircle extends StatelessWidget {
   final Color color;
-  const _ColorCircle(this.color, {Key? key}) : super(key: key);
+  const _ColorCircle(this.color);
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +401,46 @@ class _ColorCircle extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.grey.shade300, width: 2),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TestTab extends StatelessWidget {
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TestTab({
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryPurple : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.primaryPurple,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
@@ -333,7 +448,7 @@ class _ColorCircle extends StatelessWidget {
 
 class _Thumbnail extends StatelessWidget {
   final String url;
-  const _Thumbnail(this.url, {Key? key}) : super(key: key);
+  const _Thumbnail(this.url);
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +466,7 @@ class _Thumbnail extends StatelessWidget {
 
 class _SpecItem extends StatelessWidget {
   final String text;
-  const _SpecItem(this.text, {Key? key}) : super(key: key);
+  const _SpecItem(this.text);
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,7 @@ import '../theme/colors.dart';
 // ==========================================
 class BaseLayout extends StatelessWidget {
   final Widget child;
-  const BaseLayout({Key? key, required this.child}) : super(key: key);
+  const BaseLayout({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,7 @@ class BaseLayout extends StatelessWidget {
 // ENCABEZADO (Header y Barra de Navegación)
 // ==========================================
 class CustomHeader extends StatelessWidget {
-  const CustomHeader({Key? key}) : super(key: key);
+  const CustomHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -129,8 +129,7 @@ class _NavBarItem extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const _NavBarItem({Key? key, required this.title, required this.onTap})
-    : super(key: key);
+  const _NavBarItem({required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +153,7 @@ class _NavBarItem extends StatelessWidget {
 // PIE DE PÁGINA (Footer)
 // ==========================================
 class CustomFooter extends StatelessWidget {
-  const CustomFooter({Key? key}) : super(key: key);
+  const CustomFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +182,7 @@ class CustomFooter extends StatelessWidget {
 // MENÚ DE NAVEGACIÓN MÓVIL (Drawer Izquierdo)
 // ==========================================
 class NavDrawer extends StatelessWidget {
-  const NavDrawer({Key? key}) : super(key: key);
+  const NavDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +254,7 @@ class NavDrawer extends StatelessWidget {
 // CARRITO DE COMPRAS (Drawer Derecho)
 // ==========================================
 class CartDrawer extends StatelessWidget {
-  const CartDrawer({Key? key}) : super(key: key);
+  const CartDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -295,13 +294,13 @@ class CategoryCard extends StatelessWidget {
   final double? width;
 
   const CategoryCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
     required this.onTap,
     this.width,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +311,7 @@ class CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -328,7 +327,7 @@ class CategoryCard extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (c, e, s) => Container(color: Colors.grey),
             ),
-            Container(color: Colors.black.withOpacity(0.4)),
+            Container(color: Colors.black.withValues(alpha: 0.4)),
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -374,14 +373,14 @@ class ProductCard extends StatelessWidget {
   final bool isSale;
 
   const ProductCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.price,
     required this.imageUrl,
     required this.tags,
     required this.onDetailsTap,
     this.isSale = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -392,7 +391,7 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -446,7 +445,9 @@ class ProductCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryPurple.withOpacity(0.1),
+                            color: AppColors.primaryPurple.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
