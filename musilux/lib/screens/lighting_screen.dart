@@ -3,7 +3,7 @@ import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
 class LightingScreen extends StatefulWidget {
-  const LightingScreen({Key? key}) : super(key: key);
+  const LightingScreen({super.key});
 
   @override
   State<LightingScreen> createState() => _LightingScreenState();
@@ -33,9 +33,9 @@ class _LightingScreenState extends State<LightingScreen> {
     final isMobile = screenWidth < 800;
 
     int crossAxisCount = 4;
-    if (screenWidth < 600)
+    if (screenWidth < 600) {
       crossAxisCount = 1;
-    else if (screenWidth < 900)
+    } else if (screenWidth < 900)
       crossAxisCount = 2;
     else if (screenWidth < 1200)
       crossAxisCount = 3;

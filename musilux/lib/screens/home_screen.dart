@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Vinilos',
                     subtitle: 'Sonido Clásico, calidad premium',
                     imageUrl:
-                        'https://images.unsplash.com/photo-1603048297172-c92544798d5e?w=600&q=80',
+                        'https://i0.wp.com/culturayespectaculos.com/wp-content/uploads/2020/02/1-133.jpg?resize=780%2C405&ssl=1?w=600&q=80',
                     onTap: () => Navigator.pushNamed(context, '/vinilos'),
                   ),
                 ),

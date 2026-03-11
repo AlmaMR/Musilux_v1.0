@@ -171,7 +171,7 @@ class CustomFooter extends StatelessWidget {
 // MENÚ DE NAVEGACIÓN MÓVIL (Drawer Izquierdo)
 // ==========================================
 class NavDrawer extends StatelessWidget {
-  const NavDrawer({Key? key}) : super(key: key);
+  const NavDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +243,7 @@ class NavDrawer extends StatelessWidget {
 // CARRITO DE COMPRAS (Drawer Derecho)
 // ==========================================
 class CartDrawer extends StatelessWidget {
-  const CartDrawer({Key? key}) : super(key: key);
+  const CartDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
