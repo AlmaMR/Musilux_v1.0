@@ -32,6 +32,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  // Función para validar la contraseña
+  bool _isValidPassword(String password) {
+    if (password.length < 10) return false;
+    int digitCount = RegExp(r'\d').allMatches(password).length;
+    return digitCount >= 2;
+  }
+
   // Función para simular el registro
   void _registrarse() {
     if (_nombresController.text.isNotEmpty &&
