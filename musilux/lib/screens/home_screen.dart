@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:musilux/models/product.dart';
 import 'package:musilux/services/api_service.dart';
 import '../widgets/shared_components.dart';
-import '../features/catalog/data/api_service.dart';
-import '../features/catalog/data/product_model.dart';
+import '../theme/colors.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -15,6 +14,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Product>> _productsFuture;
   final ApiService _apiService = ApiService();
+
+  bool get isMobile => MediaQuery.of(context).size.width < 800;
 
   @override
   void initState() {
@@ -40,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(0.5),
+                  Colors.black.withValues(alpha: 0.5),
                   BlendMode.darken,
                 ),
               ),
@@ -107,14 +108,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => Navigator.pushNamed(context, '/instrumentos'),
                 ),
                 const SizedBox(width: 20),
-                Expanded(
-                  child: CategoryCard(
-                    title: 'Iluminación',
-                    subtitle: 'Soluciones para cada ambiente',
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1533923156502-be31530547c4?w=600&q=80',
-                    onTap: () => Navigator.pushNamed(context, '/iluminacion'),
-                  ),
+                CategoryCard(
+                  width: 320,
+                  title: 'Iluminación',
+                  subtitle: 'Soluciones para cada ambiente',
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1533923156502-be31530547c4?w=600&q=80',
+                  onTap: () => Navigator.pushNamed(context, '/iluminacion'),
                 ),
                 const SizedBox(width: 16),
                 CategoryCard(
@@ -127,19 +127,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 50),
+          ),
+          const SizedBox(height: 50),
 
-            // Promociones
-            const Text(
-              'Promociones Destacadas!!!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Tu destino para instrumentos, iluminación y vinilos de calidad.',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-            const SizedBox(height: 30),
+          // Promociones
+          const Text(
+            'Promociones Destacadas!!!',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Tu destino para instrumentos, iluminación y vinilos de calidad.',
+            style: TextStyle(fontSize: 16, color: Colors.black87),
+          ),
+          const SizedBox(height: 30),
 
           // SECCIÓN: PROMOCIONES (Refactorizada)
           Padding(
@@ -151,7 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.bold,
                 color: Colors.orange,
               ),
-              child: const Text('Solicitar Cita'),
             ),
           ),
           const SizedBox(height: 20),
@@ -171,14 +171,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No hay ofertas disponibles.'));
+                  return const Center(
+                    child: Text('No hay ofertas disponibles.'),
+                  );
                 }
 
                 // Filtramos los productos que están en oferta
-                final saleProducts = snapshot.data!.where((p) => p.isSale).toList();
+                final saleProducts = snapshot.data!
+                    .where((p) => p.isSale)
+                    .toList();
 
                 if (saleProducts.isEmpty) {
-                  return const Center(child: Text('No hay ofertas especiales en este momento.'));
+                  return const Center(
+                    child: Text('No hay ofertas especiales en este momento.'),
+                  );
                 }
 
                 return ListView.builder(
