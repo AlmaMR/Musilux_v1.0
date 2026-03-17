@@ -16,17 +16,11 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['multimedia', 'tags']);
+        $query = Product::with(['multimedia']);
 
         if ($request->has('category')) {
             $query->whereHas('category', function ($q) use ($request) {
                 $q->where('slug', $request->category);
-            });
-        }
-
-        if ($request->has('tag')) {
-            $query->whereHas('tags', function ($q) use ($request) {
-                $q->where('nombre', $request->tag);
             });
         }
 
@@ -40,7 +34,7 @@ class ProductController extends Controller
      */
     public function show(string $id)
     {
-        $product = Product::with(['multimedia', 'tags', 'especificaciones'])->findOrFail($id);
+        $product = Product::with(['multimedia', 'category'])->findOrFail($id);
         return new ProductDetailResource($product);
     }
 
@@ -49,15 +43,15 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'categoria_id' => 'required|exists:categorias,id',
+        $data = $request->validate([
+            'id_categoria' => 'nullable|exists:categorias,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_producto' => [
                 'required',
                 'string',
                 // Asegura que el valor enviado desde Flutter exista en la base de datos
-                Rule::in(['vinilo', 'instrumento', 'iluminacion', 'fisico', 'digital', 'servicio']),
+                Rule::in(['fisico', 'digital', 'servicio']),
             ],
             'precio' => 'required|numeric|min:0',
             'inventario' => 'required|integer|min:0',
@@ -65,10 +59,8 @@ class ProductController extends Controller
             'esta_activo' => 'boolean',
         ]);
 
-        $data = $request->all();
-
         // Generar Slug automáticamente
-        $data['slug'] = Str::slug($request->nombre) . '-' . uniqid();
+        $data['slug'] = Str::slug($data['nombre']) . '-' . uniqid();
 
         // Asignar valor por defecto si es digital
         if (($data['tipo_producto'] ?? '') === 'digital') {
@@ -77,7 +69,7 @@ class ProductController extends Controller
 
         $product = Product::create($data);
 
-        return new ProductDetailResource($product->load(['multimedia', 'tags', 'especificaciones']));
+        return new ProductDetailResource($product->load(['multimedia', 'category']));
     }
 
     /**
@@ -87,15 +79,15 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         
-        $request->validate([
-            'categoria_id' => 'required|exists:categorias,id',
+        $data = $request->validate([
+            'id_categoria' => 'nullable|exists:categorias,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_producto' => [
                 'required',
                 'string',
                 // Asegura que el valor enviado desde Flutter exista en la base de datos
-                Rule::in(['vinilo', 'instrumento', 'iluminacion', 'fisico', 'digital', 'servicio']),
+                Rule::in(['fisico', 'digital', 'servicio']),
             ],
             'precio' => 'required|numeric|min:0',
             'inventario' => 'required|integer|min:0',
@@ -103,13 +95,12 @@ class ProductController extends Controller
             'esta_activo' => 'boolean',
         ]);
 
-        $data = $request->all();
-        if ($request->filled('nombre')) {
-            $data['slug'] = Str::slug($request->nombre) . '-' . uniqid();
+        if (isset($data['nombre'])) {
+            $data['slug'] = Str::slug($data['nombre']) . '-' . uniqid();
         }
 
         $product->update($data);
-        return new ProductDetailResource($product->fresh()->load(['multimedia', 'tags', 'especificaciones']));
+        return new ProductDetailResource($product->fresh()->load(['multimedia', 'category']));
     }
 
     /**

@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
@@ -18,12 +17,11 @@ class Product extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    // Mapeo de timestamps a las columnas en español de MySQL
-    const CREATED_AT = 'creado_en';
-    const UPDATED_AT = 'actualizado_en';
+    // Desactivamos los timestamps. MySQL se encargará con DEFAULT CURRENT_TIMESTAMP y ON UPDATE CURRENT_TIMESTAMP
+    public $timestamps = false;
 
     protected $fillable = [
-        'categoria_id',
+        'id_categoria',
         'nombre',
         'slug',
         'descripcion',
@@ -42,22 +40,12 @@ class Product extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class, 'categoria_id');
-    }
-
-    public function tags(): BelongsToMany
-    {
-        // Asumiendo que la tabla pivote usa id_producto e id_etiqueta
-        return $this->belongsToMany(Tag::class, 'producto_etiqueta', 'id_producto', 'id_etiqueta');
-    }
-
-    public function especificaciones(): HasMany
-    {
-        return $this->hasMany(ProductSpec::class, 'id_producto');
+        return $this->belongsTo(Category::class, 'id_categoria');
     }
 
     public function multimedia(): HasMany
     {
-        return $this->hasMany(ProductImage::class, 'id_producto');
+        // Apuntamos al nuevo modelo que representa la tabla multimedia_producto
+        return $this->hasMany(ProductMedia::class, 'id_producto');
     }
 }
