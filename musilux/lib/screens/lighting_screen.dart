@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/product.dart';
+import '../services/api_service.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
 
@@ -12,6 +14,9 @@ class LightingScreen extends StatefulWidget {
 class _LightingScreenState extends State<LightingScreen> {
   String _selectedCategory = 'Todos';
   String _selectedSort = 'Recomendados';
+
+  late Future<List<Product>> _productsFuture;
+  final ApiService _apiService = ApiService();
 
   final List<String> _categories = [
     'Todos',
@@ -28,6 +33,12 @@ class _LightingScreenState extends State<LightingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _productsFuture = _apiService.fetchProducts();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 800;
@@ -39,21 +50,6 @@ class _LightingScreenState extends State<LightingScreen> {
       crossAxisCount = 2;
     else if (screenWidth < 1200)
       crossAxisCount = 3;
-
-    var filteredProducts = _iluminacionProducts.where((product) {
-      if (_selectedCategory == 'Todos') return true;
-      return (product['tags'] as List).contains(_selectedCategory);
-    }).toList();
-
-    if (_selectedSort == 'Precio: Menor a Mayor') {
-      filteredProducts.sort(
-        (a, b) => (a['price'] as double).compareTo(b['price'] as double),
-      );
-    } else if (_selectedSort == 'Precio: Mayor a Menor') {
-      filteredProducts.sort(
-        (a, b) => (b['price'] as double).compareTo(a['price'] as double),
-      );
-    }
 
     return BaseLayout(
       child: Padding(
@@ -97,8 +93,35 @@ class _LightingScreenState extends State<LightingScreen> {
 
             const SizedBox(height: 30),
 
-            filteredProducts.isEmpty
-                ? const Center(
+            FutureBuilder<List<Product>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text('No hay productos disponibles.'),
+                  );
+                }
+
+                // Filtrar solo iluminación (idCategoria == '2' en tu backend)
+                var products = snapshot.data!
+                    .where((p) => p.idCategoria == '2')
+                    .toList();
+
+                // Ordenamiento real por precio DB
+                if (_selectedSort == 'Precio: Menor a Mayor') {
+                  products.sort((a, b) => a.precio.compareTo(b.precio));
+                } else if (_selectedSort == 'Precio: Mayor a Menor') {
+                  products.sort((a, b) => b.precio.compareTo(a.precio));
+                }
+
+                if (products.isEmpty) {
+                  return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(40.0),
                       child: Text(
@@ -106,30 +129,38 @@ class _LightingScreenState extends State<LightingScreen> {
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ),
-                  )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemCount: filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final item = filteredProducts[index];
-                      return ProductCard(
-                        title: item['title'],
-                        price: item['price'],
-                        tags: item['tags'],
-                        imageUrl: item['image'],
-                        isSale: item['isSale'],
-                        onDetailsTap: () =>
-                            Navigator.pushNamed(context, '/detalle'),
-                      );
-                    },
+                  );
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 0.72,
                   ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final item = products[index];
+                    return ProductCard(
+                      title: item.nombre,
+                      price: item.precio,
+                      tags: item.categoria != null
+                          ? [item.categoria!.nombre]
+                          : [],
+                      imageUrl: item.imageUrl,
+                      isSale: item.estaActivo,
+                      onDetailsTap: () => Navigator.pushNamed(
+                        context,
+                        '/detalle-producto/${item.id}',
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -204,54 +235,3 @@ class _LightingScreenState extends State<LightingScreen> {
     );
   }
 }
-
-final List<Map<String, dynamic>> _iluminacionProducts = [
-  {
-    'title': 'Cabeza Móvil Beam 230W',
-    'price': 4500.00,
-    'tags': ['Profesional', 'LED'],
-    'image':
-        'https://m.media-amazon.com/images/I/41fmKWKV0nL._AC_UF894,1000_QL80_.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Láser RGB Animación',
-    'price': 2800.00,
-    'tags': ['DJ', 'Láser'],
-    'image':
-        'https://m.media-amazon.com/images/I/71CVXK+vXfL._AC_UF894,1000_QL80_.jpg',
-    'isSale': true,
-  },
-  {
-    'title': 'Máquina de Humo 1500W',
-    'price': 1200.00,
-    'tags': ['FX', 'Humo'],
-    'image':
-        'https://m.media-amazon.com/images/I/61cflmAri4L._AC_UF1000,1000_QL80_.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Barra LED Ultravioleta UV',
-    'price': 850.00,
-    'tags': ['Neón', 'LED'],
-    'image':
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTjCQBd1vJMazO6fzzaMRHLCww_omyUi5waw&s',
-    'isSale': false,
-  },
-  {
-    'title': 'Par LED 54x3W RGBW',
-    'price': 650.00,
-    'tags': ['Escenario', 'LED'],
-    'image':
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSdQDcWOHDlB8yvlO4_qFQuP-u8gV8VISi72Q&s',
-    'isSale': true,
-  },
-  {
-    'title': 'Controlador DMX 512',
-    'price': 1400.00,
-    'tags': ['Control', 'Profesional'],
-    'image':
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQBVDWXr07n7P8kU0e2WqFfaP1MnF6jbgRjA&s',
-    'isSale': false,
-  },
-];
