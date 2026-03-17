@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Filtramos los productos que están en oferta
                 final saleProducts = snapshot.data!
-                    .where((p) => p.isSale)
+                    .where((p) => p.estaActivo)
                     .toList();
 
                 if (saleProducts.isEmpty) {
@@ -196,10 +196,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 20),
                       child: ProductCard(
-                        isSale: product.isSale,
-                        title: product.title,
-                        price: product.price,
-                        tags: product.tags,
+                        isSale: product.estaActivo,
+                        title: product.nombre,
+                        price: product.precio,
+                        tags:
+                            const [], // Etiquetas mockeadas temporalmente para compatibilidad del widget visual
                         imageUrl: product.imageUrl,
                         onDetailsTap: () => Navigator.pushNamed(
                           context,

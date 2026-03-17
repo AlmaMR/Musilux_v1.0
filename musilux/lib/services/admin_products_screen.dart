@@ -5,7 +5,7 @@ import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 
 class AdminProductsScreen extends StatefulWidget {
-  const AdminProductsScreen({Key? key}) : super(key: key);
+  const AdminProductsScreen({super.key});
 
   @override
   State<AdminProductsScreen> createState() => _AdminProductsScreenState();
@@ -71,20 +71,23 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     final formKey = GlobalKey<FormState>();
 
     // Controladores
-    final nameCtrl = TextEditingController(text: product?.title ?? '');
+    final nameCtrl = TextEditingController(text: product?.nombre ?? '');
     final priceCtrl = TextEditingController(
-      text: product?.price.toString() ?? '',
+      text: product?.precio.toString() ?? '',
     );
     final stockCtrl = TextEditingController(
-      text: product?.stock.toString() ?? '0',
+      text: product?.inventario.toString() ?? '0',
     );
     final imgCtrl = TextEditingController(text: product?.imageUrl ?? '');
-    final descCtrl = TextEditingController(text: product?.description ?? '');
-    final catCtrl = TextEditingController(
-      text: product?.categoryId.toString() ?? '1',
-    );
+    final descCtrl = TextEditingController(text: product?.descripcion ?? '');
     final bpmCtrl = TextEditingController(text: product?.bpm?.toString() ?? '');
-    String typeValue = product?.productType ?? 'fisico';
+    String typeValue = product?.tipoProducto ?? 'fisico';
+
+    // Aseguramos que el valor inicial sea válido (1, 2 o 3)
+    String categoryValue = product?.idCategoria ?? '1';
+    if (!['1', '2', '3'].contains(categoryValue)) {
+      categoryValue = '1';
+    }
 
     showDialog(
       context: context,
@@ -135,12 +138,28 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: TextFormField(
-                          controller: catCtrl,
+                        child: DropdownButtonFormField<String>(
+                          value: categoryValue,
                           decoration: const InputDecoration(
-                            labelText: 'ID Categoría',
+                            labelText: 'Categoría',
                           ),
-                          keyboardType: TextInputType.number,
+                          items: const [
+                            DropdownMenuItem(
+                              value: '1',
+                              child: Text('Instrumentos'),
+                            ),
+                            DropdownMenuItem(
+                              value: '2',
+                              child: Text('Iluminación'),
+                            ),
+                            DropdownMenuItem(
+                              value: '3',
+                              child: Text('Vinilos'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) categoryValue = val!;
+                          },
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -207,16 +226,16 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 final newProduct = Product(
                   id:
                       product?.id ??
-                      '', // Si es nuevo, el ID se ignora en el POST
-                  title: nameCtrl.text,
-                  price: double.tryParse(priceCtrl.text) ?? 0.0,
-                  stock: int.tryParse(stockCtrl.text) ?? 0,
-                  imageUrl: imgCtrl.text,
-                  description: descCtrl.text,
-                  productType: typeValue,
-                  isSale: true, // Activo por defecto
-                  categoryId: int.tryParse(catCtrl.text) ?? 1,
+                      '0', // Si es nuevo, el ID se ignora en el POST
+                  nombre: nameCtrl.text,
+                  precio: double.tryParse(priceCtrl.text) ?? 0.0,
+                  inventario: int.tryParse(stockCtrl.text) ?? 0,
+                  descripcion: descCtrl.text,
+                  tipoProducto: typeValue,
+                  estaActivo: true, // Activo por defecto
+                  idCategoria: categoryValue,
                   bpm: int.tryParse(bpmCtrl.text),
+                  // Nota: la subida de imágenes requiere un multipart request al backend, por el momento se omitió en el modelo directo.
                 );
 
                 bool success;
@@ -354,15 +373,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                                 ),
                                 DataCell(
                                   Text(
-                                    product.title,
+                                    product.nombre,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
-                                DataCell(Text(product.productType ?? 'N/A')),
-                                DataCell(Text('\$${product.price}')),
-                                DataCell(Text(product.stock.toString())),
+                                DataCell(Text(product.tipoProducto)),
+                                DataCell(Text('\$${product.precio}')),
+                                DataCell(Text(product.inventario.toString())),
                                 DataCell(
                                   Row(
                                     children: [

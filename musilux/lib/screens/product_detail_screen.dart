@@ -94,24 +94,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.arrow_back_ios, size: 16),
-                                const SizedBox(width: 10),
-                                _Thumbnail(product.imageUrl),
-                                const SizedBox(width: 10),
-                                const _Thumbnail(
-                                  'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
-                                ),
-                                const SizedBox(width: 10),
-                                const _Thumbnail(
-                                  'https://m.media-amazon.com/images/I/61kVo9GKvjL._AC_SX342_SY445_QL70_ML2_.jpg',
-                                ),
-                                const SizedBox(width: 10),
-                                const Icon(Icons.arrow_forward_ios, size: 16),
-                              ],
-                            ),
+                            if (product.multimedia.isNotEmpty)
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.arrow_back_ios, size: 16),
+                                  const SizedBox(width: 10),
+                                  ...product.multimedia.map(
+                                    (media) => Padding(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      child: _Thumbnail(media.urlArchivo),
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                                ],
+                              ),
                           ],
                         ),
                       ),
@@ -125,7 +122,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                product.title,
+                                product.nombre,
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -134,7 +131,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 // El precio viene como double, lo formateamos.
-                                '\$${product.price.toStringAsFixed(2)}',
+                                '\$${product.precio.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -143,7 +140,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                product.description ??
+                                product.descripcion ??
                                     'No hay descripción disponible.',
                                 style: const TextStyle(
                                   fontSize: 14,
@@ -152,29 +149,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              if (product.specs != null &&
-                                  product.specs!.isNotEmpty) ...[
-                                const Text(
-                                  'Especificaciones Técnicas',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                // Usamos el `...` (spread operator) para añadir los widgets a la columna
-                                ...product.specs!.map(
-                                  (spec) => _SpecItem(spec),
-                                ),
-                              ],
                               const SizedBox(height: 30),
 
                               // DEMOS DINÁMICOS DEPENDIENDO DEL TIPO
-                              if (product.productType == 'vinilo')
+                              if (product.tipoProducto == 'digital')
                                 _buildAudioDemo(),
-                              if (product.productType == 'instrumento')
+                              if (product.tipoProducto == 'fisico')
                                 _buildVideoDemo(),
-                              if (product.productType == 'iluminacion')
+                              if (product.tipoProducto == 'servicio')
                                 _buildLightingDemo(),
 
                               const SizedBox(height: 40),
@@ -400,25 +382,6 @@ class _Thumbnail extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.grey.shade300),
         image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
-      ),
-    );
-  }
-}
-
-class _SpecItem extends StatelessWidget {
-  final String text;
-  const _SpecItem(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(fontSize: 16)),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
-        ],
       ),
     );
   }
