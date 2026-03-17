@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: const NetworkImage(
-                  'https://scontent.ftpq1-1.fna.fbcdn.net/v/t39.30808-6/474271411_1043605514446919_7181129950938001225_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=2a1932&_nc_eui2=AeHXNpbO7QC7jtwJROPcZGDL2sHPTG50jv_awc9MbnSO_9lCsTgey_YkZ14aaaVKwUyFI_i-PeqHPnjyAoNU4VtI&_nc_ohc=O6GYxOj6bpsQ7kNvwEIjJx6&_nc_oc=AdkI3gHI5r7VvaFNOVISjCjqwyqNUQAiPHxg_TrgdNfa5Y3A4hw4O1GBzq6X92XHUYU&_nc_zt=23&_nc_ht=scontent.ftpq1-1.fna&_nc_gid=mLLU6rsm3oFAAqLKgRhnZw&_nc_ss=8&oh=00_AfxDoWsTaTtKpQ23J-29fPH4JESmqM9dl9WMrqcG3MaGiA&oe=69B6293C',
+                  'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1200&q=80',
                 ),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
@@ -204,8 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         imageUrl: product.imageUrl,
                         onDetailsTap: () => Navigator.pushNamed(
                           context,
-                          '/detalle-producto',
-                          arguments: product.id, // Pasamos el ID del producto
+                          '/detalle-producto/${product.id}',
                         ),
                       ),
                     );

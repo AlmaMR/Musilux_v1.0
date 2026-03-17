@@ -502,9 +502,8 @@ class ProductCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/detalle-producto');
-                        },
+                        onPressed:
+                            onDetailsTap, // <-- Ahora sí utiliza la función dinámica que trae el ID
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           side: const BorderSide(

@@ -5,7 +5,8 @@ import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  const ProductDetailScreen({super.key});
+  final String? productId; // Agregado para recibir desde la URL
+  const ProductDetailScreen({super.key, this.productId});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -21,12 +22,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.didChangeDependencies();
     // Extraemos el ID del producto de los argumentos de la ruta.
     // Lo hacemos aquí porque ModalRoute.of(context) no está disponible en initState.
-    final productId = ModalRoute.of(context)?.settings.arguments as String?;
+    final args = ModalRoute.of(context)?.settings.arguments;
+
+    // Damos prioridad al ID que viene inyectado por la URL (widget.productId)
+    final extractedId = widget.productId ?? args?.toString();
 
     // Si el ID cambia (o es la primera vez), iniciamos una nueva carga.
-    if (productId != null && productId != _productId) {
+    if (extractedId != null && extractedId != _productId) {
       setState(() {
-        _productId = productId;
+        _productId = extractedId;
         _productFuture = _apiService.fetchProductById(_productId!);
       });
     } else if (_productId == null) {
@@ -121,11 +125,44 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // CHIP DE CATEGORÍA
+                              if (product.categoria != null)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryPurple.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    product.categoria!.nombre.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: AppColors.primaryPurple,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
                               Text(
                                 product.nombre,
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // AÑADIDO: Muestra el ID real generado en la base de datos
+                              SelectableText(
+                                'Ref (ID): ${product.id}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -139,6 +176,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
+
+                              // INVENTARIO Y BPM
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.inventory_2_outlined,
+                                    size: 18,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    product.inventario > 0
+                                        ? 'Stock: ${product.inventario} disponibles'
+                                        : 'Agotado',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: product.inventario > 0
+                                          ? Colors.green[700]
+                                          : Colors.red,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (product.bpm != null) ...[
+                                    const SizedBox(width: 20),
+                                    const Icon(
+                                      Icons.speed,
+                                      size: 18,
+                                      color: Colors.grey,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'BPM: ${product.bpm}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
                               Text(
                                 product.descripcion ??
                                     'No hay descripción disponible.',
