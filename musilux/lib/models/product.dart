@@ -10,6 +10,8 @@ class Product {
   final String? description;
   final List<String>? specs;
   final String? productType;
+  final int categoryId; // OBLIGATORIO en backend
+  final int? bpm; // Opcional en backend
 
   Product({
     required this.id,
@@ -23,43 +25,42 @@ class Product {
     this.description,
     this.specs,
     this.productType,
+    this.categoryId = 1, // Por defecto 1 si no se envía
+    this.bpm,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    // Las claves del JSON de la API deben coincidir con las esperadas aquí.
-    // El backend debe devolver 'id', 'title', 'price', 'imageUrl', 'tags', 'isSale' para listas.
-    // Y 'titulo', 'precio', 'desc', 'img', 'specs', 'tipo_producto' para el detalle.
-    // Este factory intenta ser flexible.
+    // Factory actualizado para coincidir con la estructura del API Resource de Laravel.
+    // Esto asegura que los datos siempre tengan el mismo formato.
     return Product(
       id: json['id']?.toString() ?? '0',
-      title: (json['title'] ?? json['titulo'] ?? 'Sin título').toString(),
+      title: (json['title'] ?? 'Sin título').toString(),
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      imageUrl: (json['imageUrl'] ?? json['img'] ?? '').toString(),
+      imageUrl: (json['imageUrl'] ?? '').toString(),
       slug: (json['slug'] ?? '').toString(),
-      stock: (json['inventario'] as num?)?.toInt() ?? 0,
+      stock: (json['stock'] as num?)?.toInt() ?? 0,
       tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
       isSale:
-          json['esta_activo'] == 1 ||
-          json['esta_activo'] == true, // Mapeo a boolean
-      description: json['desc'] as String?,
+          json['isSale'] ??
+          false, // El backend ahora envía 'isSale' como booleano
+      description: json['description'] as String?,
       specs: json['specs'] != null ? List<String>.from(json['specs']) : null,
-      productType: json['tipo_producto'] as String?,
+      productType: json['productType'] as String?,
+      categoryId: int.tryParse(json['categoria_id']?.toString() ?? '1') ?? 1,
+      bpm: json['bpm'] != null ? int.tryParse(json['bpm'].toString()) : null,
     );
   }
 
   // Método para enviar datos al Backend (SQL)
   Map<String, dynamic> toJson() {
     return {
+      'categoria_id': categoryId,
       'nombre': title,
-      'slug': slug.isEmpty
-          ? title.toLowerCase().replaceAll(' ', '-')
-          : slug, // Generación simple de slug
       'precio': price,
       'descripcion': description,
       'inventario': stock,
       'tipo_producto': productType ?? 'fisico',
-      // Asumimos que el backend maneja la imagen recibiendo una URL por ahora
-      'url_imagen': imageUrl,
+      'bpm': bpm,
       'esta_activo': isSale,
     };
   }

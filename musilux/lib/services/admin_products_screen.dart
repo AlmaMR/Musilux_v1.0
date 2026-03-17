@@ -80,6 +80,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
     final imgCtrl = TextEditingController(text: product?.imageUrl ?? '');
     final descCtrl = TextEditingController(text: product?.description ?? '');
+    final catCtrl = TextEditingController(
+      text: product?.categoryId.toString() ?? '1',
+    );
+    final bpmCtrl = TextEditingController(text: product?.bpm?.toString() ?? '');
     String typeValue = product?.productType ?? 'fisico';
 
     showDialog(
@@ -121,6 +125,30 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                           controller: stockCtrl,
                           decoration: const InputDecoration(
                             labelText: 'Inventario',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: catCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'ID Categoría',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: bpmCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'BPM (Opcional)',
                           ),
                           keyboardType: TextInputType.number,
                         ),
@@ -187,6 +215,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   description: descCtrl.text,
                   productType: typeValue,
                   isSale: true, // Activo por defecto
+                  categoryId: int.tryParse(catCtrl.text) ?? 1,
+                  bpm: int.tryParse(bpmCtrl.text),
                 );
 
                 bool success;

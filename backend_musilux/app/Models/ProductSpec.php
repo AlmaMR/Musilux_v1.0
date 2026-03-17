@@ -13,13 +13,13 @@ class ProductSpec extends Model
     protected $table = 'especificaciones_producto';
 
     protected $fillable = [
-        'producto_id',
+        'id_producto',
         'clave',
         'valor',
     ];
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'producto_id');
+        return $this->belongsTo(Product::class, 'id_producto');
     }
 }

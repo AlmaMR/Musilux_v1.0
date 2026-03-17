@@ -15,11 +15,12 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('categoria_id')->constrained('categorias')->onDelete('cascade');
             $table->string('nombre');
-            $table->text('descripcion');
+            $table->text('descripcion')->nullable();
             $table->decimal('precio', 8, 2);
-            $table->integer('stock');
+            $table->integer('inventario'); // Corregido para coincidir con el modelo y seeder
             $table->boolean('esta_activo')->default(true);
-            $table->enum('tipo_producto', ['vinilo', 'instrumento', 'iluminacion']);
+            $table->enum('tipo_producto', ['vinilo', 'instrumento', 'iluminacion', 'fisico', 'digital', 'servicio']);
+            $table->integer('bpm')->nullable();
             $table->timestamps();
         });
 
