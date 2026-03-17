@@ -1,67 +1,114 @@
+class ProductMedia {
+  final String id;
+  final String urlArchivo;
+  final bool esPrincipal;
+  final String tipoMultimedia;
+
+  ProductMedia({
+    required this.id,
+    required this.urlArchivo,
+    required this.esPrincipal,
+    required this.tipoMultimedia,
+  });
+
+  factory ProductMedia.fromJson(Map<String, dynamic> json) {
+    return ProductMedia(
+      id: json['id']?.toString() ?? '',
+      urlArchivo: json['url_archivo']?.toString() ?? '',
+      esPrincipal: json['es_principal'] == true || json['es_principal'] == 1,
+      tipoMultimedia: json['tipo_multimedia']?.toString() ?? 'imagen',
+    );
+  }
+}
+
+class ProductCategory {
+  final String id;
+  final String nombre;
+  final String slug;
+
+  ProductCategory({required this.id, required this.nombre, required this.slug});
+
+  factory ProductCategory.fromJson(Map<String, dynamic> json) {
+    return ProductCategory(
+      id: json['id']?.toString() ?? '',
+      nombre: json['nombre']?.toString() ?? '',
+      slug: json['slug']?.toString() ?? '',
+    );
+  }
+}
+
 class Product {
   final String id;
-  final String title;
-  final double price;
-  final String imageUrl;
-  final String slug; // Nuevo campo SQL
-  final int stock; // Nuevo campo SQL (inventario)
-  final List<String> tags;
-  final bool isSale;
-  final String? description;
-  final List<String>? specs;
-  final String? productType;
-  final int categoryId; // OBLIGATORIO en backend
-  final int? bpm; // Opcional en backend
+  final String nombre;
+  final double precio;
+  final String slug;
+  final int inventario;
+  final bool estaActivo;
+  final String? descripcion;
+  final String tipoProducto;
+  final String? idCategoria;
+  final int? bpm;
+  final List<ProductMedia> multimedia;
+  final ProductCategory? categoria;
 
   Product({
     required this.id,
-    required this.title,
-    required this.price,
-    required this.imageUrl,
+    required this.nombre,
+    required this.precio,
     this.slug = '',
-    this.stock = 0,
-    this.tags = const [],
-    this.isSale = false,
-    this.description,
-    this.specs,
-    this.productType,
-    this.categoryId = 1, // Por defecto 1 si no se envía
+    this.inventario = 0,
+    this.estaActivo = false,
+    this.descripcion,
+    this.tipoProducto = 'fisico',
+    this.idCategoria,
     this.bpm,
+    this.multimedia = const [],
+    this.categoria,
   });
 
+  // Getter para obtener la imagen principal de forma segura. Retorna un placeholder si no hay.
+  String get imageUrl {
+    if (multimedia.isEmpty) return 'https://via.placeholder.com/300';
+    final mainMedia = multimedia.firstWhere(
+      (m) => m.esPrincipal,
+      orElse: () => multimedia.first,
+    );
+    return mainMedia.urlArchivo;
+  }
+
   factory Product.fromJson(Map<String, dynamic> json) {
-    // Factory actualizado para coincidir con la estructura del API Resource de Laravel.
-    // Esto asegura que los datos siempre tengan el mismo formato.
     return Product(
       id: json['id']?.toString() ?? '0',
-      title: (json['title'] ?? 'Sin título').toString(),
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      imageUrl: (json['imageUrl'] ?? '').toString(),
+      nombre: json['nombre']?.toString() ?? 'Sin título',
+      precio: (json['precio'] as num?)?.toDouble() ?? 0.0,
       slug: (json['slug'] ?? '').toString(),
-      stock: (json['stock'] as num?)?.toInt() ?? 0,
-      tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
-      isSale:
-          json['isSale'] ??
-          false, // El backend ahora envía 'isSale' como booleano
-      description: json['description'] as String?,
-      specs: json['specs'] != null ? List<String>.from(json['specs']) : null,
-      productType: json['productType'] as String?,
-      categoryId: int.tryParse(json['categoria_id']?.toString() ?? '1') ?? 1,
+      inventario: (json['inventario'] as num?)?.toInt() ?? 0,
+      estaActivo: json['esta_activo'] == true || json['esta_activo'] == 1,
+      descripcion: json['descripcion']?.toString(),
+      tipoProducto: json['tipo_producto']?.toString() ?? 'fisico',
+      idCategoria: json['id_categoria']?.toString(),
       bpm: json['bpm'] != null ? int.tryParse(json['bpm'].toString()) : null,
+      multimedia: json['multimedia'] != null
+          ? (json['multimedia'] as List)
+                .map((i) => ProductMedia.fromJson(i))
+                .toList()
+          : [],
+      categoria: json['category'] != null
+          ? ProductCategory.fromJson(json['category'])
+          : null,
     );
   }
 
-  // Método para enviar datos al Backend (SQL)
   Map<String, dynamic> toJson() {
     return {
-      'categoria_id': categoryId,
-      'nombre': title,
-      'precio': price,
-      'descripcion': description,
-      'inventario': stock,
-      'tipo_producto': productType ?? 'fisico',
+      'id_categoria': idCategoria,
+      'nombre': nombre,
+      'precio': precio,
+      'descripcion': descripcion,
+      'inventario': inventario,
+      'tipo_producto': tipoProducto,
       'bpm': bpm,
-      'esta_activo': isSale,
+      'esta_activo': estaActivo,
     };
   }
 }

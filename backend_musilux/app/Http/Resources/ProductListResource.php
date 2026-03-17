@@ -7,26 +7,25 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProductListResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'title' => $this->nombre,
-            'price' => $this->precio,
-            'imageUrl' => $this->whenLoaded('multimedia', function () {
-                $principal = $this->multimedia->firstWhere('es_principal', true);
-                return $principal ? $principal->url_archivo : $this->multimedia->first()?->url_archivo;
-            }),
-            'tags' => $this->whenLoaded('tags', function () {
-                return $this->tags->pluck('nombre');
-            }),
-            'isSale' => $this->whenLoaded('tags', function () {
-                return $this->tags->contains('nombre', 'Oferta');
+            'id_categoria' => $this->id_categoria,
+            'nombre' => $this->nombre,
+            'slug' => $this->slug,
+            'precio' => (float) $this->precio,
+            'tipo_producto' => $this->tipo_producto,
+            'esta_activo' => (bool) $this->esta_activo,
+            'multimedia' => $this->whenLoaded('multimedia', function () {
+                return $this->multimedia->map(function ($media) {
+                    return [
+                        'id' => $media->id,
+                        'tipo_multimedia' => $media->tipo_multimedia,
+                        'url_archivo' => $media->url_archivo,
+                        'es_principal' => (bool) $media->es_principal,
+                    ];
+                });
             }),
         ];
     }
