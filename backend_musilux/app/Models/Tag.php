@@ -18,6 +18,6 @@ class Tag extends Model
 
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class, 'producto_etiqueta', 'etiqueta_id', 'producto_id');
+        return $this->belongsToMany(Product::class, 'producto_etiqueta', 'id_etiqueta', 'id_producto');
     }
 }
