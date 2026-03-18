@@ -3,6 +3,8 @@ import '../models/product.dart';
 import '../services/api_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
+import '../services/spotify_service.dart';
+import '../widgets/spotify_search_widget.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -67,6 +69,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   // --- FORMULARIO DE CREAR / EDITAR ---
   void _showFormDialog({Product? product}) {
+    SpotifyTrack? selectedTrack;
     final isEditing = product != null;
     final formKey = GlobalKey<FormState>();
 
@@ -95,119 +98,137 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         title: Text(isEditing ? 'Editar Producto' : 'Nuevo Producto'),
         content: SizedBox(
           width: 400, // Ancho fijo para web/desktop
-          child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre del Producto',
-                    ),
-                    validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
+          child: StatefulBuilder(
+            builder: (context, setInnerState) {
+              return SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: priceCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Precio',
-                            prefixText: '\$ ',
+                      TextFormField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre del Producto',
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: priceCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Precio',
+                                prefixText: '\$ ',
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                            ),
                           ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+                              controller: stockCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Inventario',
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: categoryValue,
+                              decoration: const InputDecoration(
+                                labelText: 'Categoría',
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: '1',
+                                  child: Text('Instrumentos'),
+                                ),
+                                DropdownMenuItem(
+                                  value: '2',
+                                  child: Text('Iluminación'),
+                                ),
+                                DropdownMenuItem(
+                                  value: '3',
+                                  child: Text('Vinilos'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setInnerState(() => categoryValue = val);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+                              controller: bpmCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'BPM (Opcional)',
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        initialValue: typeValue,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'fisico',
+                            child: Text('Físico'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'digital',
+                            child: Text('Digital'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'servicio',
+                            child: Text('Servicio'),
+                          ),
+                        ],
+                        onChanged: (val) => typeValue = val!,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: imgCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'URL Imagen (Opcional)',
+                          helperText: 'Deja vacío para usar imagen por defecto',
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: stockCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Inventario',
-                          ),
-                          keyboardType: TextInputType.number,
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: descCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Descripción',
                         ),
+                        maxLines: 3,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: categoryValue,
-                          decoration: const InputDecoration(
-                            labelText: 'Categoría',
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: '1',
-                              child: Text('Instrumentos'),
-                            ),
-                            DropdownMenuItem(
-                              value: '2',
-                              child: Text('Iluminación'),
-                            ),
-                            DropdownMenuItem(
-                              value: '3',
-                              child: Text('Vinilos'),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) categoryValue = val!;
+                      const SizedBox(height: 10),
+                      if (categoryValue == '3')
+                        SpotifySearchWidget(
+                          onTrackSelected: (track) {
+                            selectedTrack = track;
                           },
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: bpmCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'BPM (Opcional)',
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: typeValue,
-                    decoration: const InputDecoration(labelText: 'Tipo'),
-                    items: const [
-                      DropdownMenuItem(value: 'fisico', child: Text('Físico')),
-                      DropdownMenuItem(
-                        value: 'digital',
-                        child: Text('Digital'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'servicio',
-                        child: Text('Servicio'),
-                      ),
-                    ],
-                    onChanged: (val) => typeValue = val!,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: imgCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'URL Imagen (Opcional)',
-                      helperText: 'Deja vacío para usar imagen por defecto',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: descCtrl,
-                    decoration: const InputDecoration(labelText: 'Descripción'),
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
         actions: [
@@ -235,6 +256,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   estaActivo: true, // Activo por defecto
                   idCategoria: categoryValue,
                   bpm: int.tryParse(bpmCtrl.text),
+                  spotifyTrackId: selectedTrack?.id,
+                  spotifyTrackName: selectedTrack?.name,
+                  spotifyArtistName: selectedTrack?.artistName,
+                  spotifyPreviewUrl: selectedTrack?.previewUrl,
+                  spotifyAlbumImageUrl: selectedTrack?.albumImageUrl,
                   // Nota: la subida de imágenes requiere un multipart request al backend, por el momento se omitió en el modelo directo.
                 );
 
