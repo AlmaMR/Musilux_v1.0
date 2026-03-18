@@ -4,12 +4,26 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\SpotifyController;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
 Route::apiResource('products', ProductController::class);
+
+// Ruta de búsqueda Spotify (protegida si tienes auth middleware)
+Route::options('/spotify/search', function() {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        ->header('Access-Control-Allow-Headers', '*');
+});
+Route::get('/spotify/search', [SpotifyController::class, 'search']);
+
+// Si usas Sanctum o auth, agrégala así:
+// Route::middleware('auth:sanctum')->get('/spotify/search', [...]);
 
 Route::get('/debug-db', function () {
     $config = [
@@ -32,4 +46,5 @@ Route::get('/debug-db', function () {
         'database_config' => $config,
         'database_status' => $db_status
     ]);
+        
 });

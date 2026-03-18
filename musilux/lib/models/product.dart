@@ -50,6 +50,11 @@ class Product {
   final int? bpm;
   final List<ProductMedia> multimedia;
   final ProductCategory? categoria;
+  final String? spotifyTrackId;
+  final String? spotifyTrackName;
+  final String? spotifyArtistName;
+  final String? spotifyPreviewUrl;
+  final String? spotifyAlbumImageUrl;
 
   Product({
     required this.id,
@@ -64,6 +69,11 @@ class Product {
     this.bpm,
     this.multimedia = const [],
     this.categoria,
+    this.spotifyTrackId,
+    this.spotifyTrackName,
+    this.spotifyArtistName,
+    this.spotifyPreviewUrl,
+    this.spotifyAlbumImageUrl,
   });
 
   // Getter para obtener la imagen principal de forma segura. Retorna un placeholder si no hay.
@@ -97,6 +107,11 @@ class Product {
       categoria: json['category'] != null
           ? ProductCategory.fromJson(json['category'])
           : null,
+      spotifyTrackId: json['spotify_track_id']?.toString(),
+      spotifyTrackName: json['spotify_track_name']?.toString(),
+      spotifyArtistName: json['spotify_artist_name']?.toString(),
+      spotifyPreviewUrl: json['spotify_preview_url']?.toString(),
+      spotifyAlbumImageUrl: json['spotify_album_image_url']?.toString(),
     );
   }
 
@@ -110,6 +125,11 @@ class Product {
       'tipo_producto': tipoProducto,
       'bpm': bpm,
       'esta_activo': estaActivo,
+      'spotify_track_id': spotifyTrackId,
+      'spotify_track_name': spotifyTrackName,
+      'spotify_artist_name': spotifyArtistName,
+      'spotify_preview_url': spotifyPreviewUrl,
+      'spotify_album_image_url': spotifyAlbumImageUrl,
     };
   }
 }

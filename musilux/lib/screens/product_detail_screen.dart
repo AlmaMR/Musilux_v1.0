@@ -3,6 +3,7 @@ import 'package:musilux/models/product.dart';
 import 'package:musilux/services/api_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String? productId; // Agregado para recibir desde la URL
@@ -15,9 +16,16 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late Future<Product> _productFuture;
   final ApiService _apiService = ApiService();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
   String? _productId;
 
   @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Extraemos el ID del producto de los argumentos de la ruta.
@@ -234,7 +242,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               if (product.tipoProducto == 'digital')
                                 _buildAudioDemo(),
                               if (product.tipoProducto == 'fisico')
-                                _buildVideoDemo(),
+                                _buildSpotifyDemo(product),
                               if (product.tipoProducto == 'servicio')
                                 _buildLightingDemo(),
 
@@ -353,6 +361,98 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             const Text('01:30', style: TextStyle(fontSize: 12)),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpotifyDemo(Product product) {
+    if (product.spotifyPreviewUrl == null) {
+      return const SizedBox.shrink(); // Sin preview, no muestra nada
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '🎵 Demo de la Canción',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              if (product.spotifyAlbumImageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.network(
+                    product.spotifyAlbumImageUrl!,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.spotifyTrackName ?? '',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      product.spotifyArtistName ?? '',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Preview 30s',
+                      style: TextStyle(color: Color(0xFF1DB954), fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              StatefulBuilder(
+                builder: (context, setInner) => IconButton(
+                  icon: Icon(
+                    _isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
+                    color: const Color(0xFF1DB954),
+                    size: 44,
+                  ),
+                  onPressed: () async {
+                    if (_isPlaying) {
+                      await _audioPlayer.pause();
+                      setInner(() => _isPlaying = false);
+                    } else {
+                      await _audioPlayer.play(
+                        UrlSource(product.spotifyPreviewUrl!),
+                      );
+                      setInner(() => _isPlaying = true);
+                      _audioPlayer.onPlayerComplete.listen((_) {
+                        if (mounted) setInner(() => _isPlaying = false);
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
