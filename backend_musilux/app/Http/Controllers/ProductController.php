@@ -57,6 +57,12 @@ class ProductController extends Controller
             'inventario' => 'required|integer|min:0',
             'bpm' => 'nullable|integer',
             'esta_activo' => 'boolean',
+            // Campos de Spotify (opcionales, solo para vinilos/digitales)
+            'spotify_track_id' => 'nullable|string|max:255',
+            'spotify_track_name' => 'nullable|string|max:255',
+            'spotify_artist_name' => 'nullable|string|max:255',
+            'spotify_preview_url' => 'nullable|url|max:500',
+            'spotify_album_image_url' => 'nullable|url|max:500',
         ]);
 
         // Generar Slug automáticamente
@@ -93,6 +99,12 @@ class ProductController extends Controller
             'inventario' => 'required|integer|min:0',
             'bpm' => 'nullable|integer',
             'esta_activo' => 'boolean',
+            // Campos de Spotify (opcionales)
+            'spotify_track_id' => 'nullable|string|max:255',
+            'spotify_track_name' => 'nullable|string|max:255',
+            'spotify_artist_name' => 'nullable|string|max:255',
+            'spotify_preview_url' => 'nullable|url|max:500',
+            'spotify_album_image_url' => 'nullable|url|max:500',
         ]);
 
         if (isset($data['nombre'])) {

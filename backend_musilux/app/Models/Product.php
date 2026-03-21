@@ -30,6 +30,12 @@ class Product extends Model
         'esta_activo',
         'tipo_producto',
         'bpm',
+        // Campos de integración Spotify
+        'spotify_track_id',
+        'spotify_track_name',
+        'spotify_artist_name',
+        'spotify_preview_url',
+        'spotify_album_image_url',
     ];
 
     protected $casts = [
