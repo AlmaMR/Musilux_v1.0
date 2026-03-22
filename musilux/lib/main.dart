@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:musilux/screens/contact_screen.dart';
-import 'theme/colors.dart'; // Asegúrate de tener este archivo
+import 'theme/colors.dart';
 import 'screens/home_screen.dart';
 import 'screens/lighting_screen.dart';
 import 'screens/instruments_screen.dart';
 import 'screens/vinyls_screen.dart';
 import 'screens/product_detail_screen.dart';
 import 'screens/profile_screen.dart';
-import 'services/admin_products_screen.dart'; // Importar nueva pantalla
+import 'screens/admin_products_screen.dart';
+import 'screens/login_screen.dart';
+import 'services/auth_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Restaura el token guardado para que el admin no pierda la sesión al recargar
+  await AuthService().restoreSession();
   runApp(const MusiluxApp());
 }
 
@@ -23,7 +28,7 @@ class MusiluxApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: AppColors.primaryPurple,
-        fontFamily: 'Roboto', // O la fuente que estés usando
+        fontFamily: 'Roboto',
       ),
       initialRoute: '/',
       routes: {
@@ -33,8 +38,10 @@ class MusiluxApp extends StatelessWidget {
         '/vinilos': (context) => const VinylsScreen(),
         '/contacto': (context) => const ContactScreen(),
         '/perfil': (context) => const ProfileScreen(),
-        '/admin_products': (context) =>
-            const AdminProductsScreen(), // Registrar ruta
+        '/login': (context) => const LoginScreen(),
+        '/admin-products': (context) => const AdminProductsScreen(),
+        // Alias para compatibilidad con navegación existente
+        '/admin_products': (context) => const AdminProductsScreen(),
       },
       onGenerateRoute: (settings) {
         // Intercepta la ruta dinámica para inyectar el ID directamente desde la URL
