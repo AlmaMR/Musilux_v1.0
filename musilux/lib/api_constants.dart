@@ -4,10 +4,10 @@ class ApiConstants {
   // Detecta automáticamente si estás en Android (Emulador) o en Windows
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:8000/api';
+      return 'http://localhost:8080/api';
     }
     // Para Android Emulator usamos 10.0.2.2, para otros (iOS/Windows) localhost
-    return 'http://10.0.2.2:8000/api';
+    return 'http://10.0.2.2:8080/api';
   }
 
   static const String productsEndpoint = '/products';

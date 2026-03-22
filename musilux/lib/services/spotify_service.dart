@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../api_constants.dart';
 
 class SpotifyTrack {
   final String id;
@@ -31,23 +32,26 @@ class SpotifyTrack {
 }
 
 class SpotifyService {
-  // ✅ Solo apunta a tu Laravel, sin credenciales aquí
-  static const String _baseUrl =
-      'https://pseudodemocratic-darin-catalytically.ngrok-free.dev/api';
+  // Usa el mismo base URL que el resto de la app.
+  // Antes usaba ngrok hardcodeado → el navegador recibía la página de
+  // advertencia de ngrok (HTML) en lugar de JSON → fallo silencioso en Web.
+  String get _baseUrl => ApiConstants.baseUrl;
 
   Future<List<SpotifyTrack>> searchTracks(String query) async {
-    final uri = Uri.parse(
-      '$_baseUrl/spotify/search',
-    ).replace(queryParameters: {'q': query});
+    final uri = Uri.parse('$_baseUrl/spotify/search')
+        .replace(queryParameters: {'q': query});
 
-    final response = await http.get(uri);
+    final response = await http.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final items = data['tracks'] as List;
       return items.map((item) => SpotifyTrack.fromJson(item)).toList();
     } else {
-      throw Exception('Error en búsqueda: ${response.statusCode}');
+      throw Exception('Error en búsqueda Spotify: ${response.statusCode}');
     }
   }
 }

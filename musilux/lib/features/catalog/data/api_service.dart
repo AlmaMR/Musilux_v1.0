@@ -1,24 +1,32 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'product_model.dart';
+import '../../../api_constants.dart';
 
 class ProductService {
-  String get baseUrl {
-    if (kIsWeb) {
-      return "http://127.0.0.1:8080/api/productos";
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return "http://10.0.2.2:8080/api/productos";
-    }
-    return "http://127.0.0.1:8080/api/productos";
-  }
+  // Usa ApiConstants para consistencia con el resto de la app.
+  // Bug anterior: apuntaba a /api/productos (ruta inexistente → 404).
+  String get baseUrl => '${ApiConstants.baseUrl}/products';
+
+  // Token de autenticación (se asigna desde AuthService al hacer login)
+  static String? authToken;
+
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (authToken != null) 'Authorization': 'Bearer $authToken',
+  };
 
   Future<List<ProductModel>> getProducts() async {
-    final response = await http.get(Uri.parse(baseUrl));
+    final response = await http.get(
+      Uri.parse(baseUrl),
+      headers: {'Accept': 'application/json'},
+    );
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body);
+      // Laravel Resources envuelven la lista en una clave "data"
+      final decoded = jsonDecode(response.body);
+      final List<dynamic> body = decoded is Map ? decoded['data'] : decoded;
       return body.map((dynamic item) => ProductModel.fromJson(item)).toList();
     } else {
       throw Exception('Error al cargar productos: ${response.statusCode}');
@@ -28,30 +36,26 @@ class ProductService {
   Future<bool> createProduct(ProductModel product) async {
     final response = await http.post(
       Uri.parse(baseUrl),
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
+      headers: _headers,
       body: jsonEncode(product.toJson()),
     );
-
     return response.statusCode == 201;
   }
 
   Future<bool> updateProduct(ProductModel product) async {
     final response = await http.put(
       Uri.parse('$baseUrl/${product.id}'),
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
+      headers: _headers,
       body: jsonEncode(product.toJson()),
     );
     return response.statusCode == 200;
   }
 
   Future<bool> deleteProduct(String id) async {
-    final response = await http.delete(Uri.parse('$baseUrl/$id'));
+    final response = await http.delete(
+      Uri.parse('$baseUrl/$id'),
+      headers: _headers,
+    );
     return response.statusCode == 200 || response.statusCode == 204;
   }
 }

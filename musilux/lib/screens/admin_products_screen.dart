@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/catalog/data/product_model.dart';
 import '../features/catalog/data/api_service.dart';
+import '../services/spotify_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 
@@ -192,8 +193,16 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late TextEditingController _precioCtrl;
   late TextEditingController _invCtrl;
   late TextEditingController _bpmCtrl;
+  final TextEditingController _spotifySearchCtrl = TextEditingController();
   String _tipoProducto = 'fisico';
   bool _estaActivo = true;
+
+  // Estado de Spotify
+  SpotifyTrack? _selectedTrack;
+  List<SpotifyTrack> _spotifyResults = [];
+  bool _isSearchingSpotify = false;
+
+  final SpotifyService _spotifyService = SpotifyService();
 
   @override
   void initState() {
@@ -207,6 +216,51 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _bpmCtrl = TextEditingController(text: p?.bpm?.toString() ?? '');
     _tipoProducto = p?.tipoProducto ?? 'fisico';
     _estaActivo = p?.estaActivo ?? true;
+
+    // Si el producto ya tenía un track vinculado, reconstruirlo
+    if (p?.spotifyTrackId != null) {
+      _selectedTrack = SpotifyTrack(
+        id: p!.spotifyTrackId!,
+        name: p.spotifyTrackName ?? '',
+        artistName: p.spotifyArtistName ?? '',
+        albumName: '',
+        previewUrl: p.spotifyPreviewUrl,
+        albumImageUrl: p.spotifyAlbumImageUrl,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _slugCtrl.dispose();
+    _descCtrl.dispose();
+    _precioCtrl.dispose();
+    _invCtrl.dispose();
+    _bpmCtrl.dispose();
+    _spotifySearchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchSpotify() async {
+    final query = _spotifySearchCtrl.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _isSearchingSpotify = true;
+      _spotifyResults = [];
+    });
+    try {
+      final results = await _spotifyService.searchTracks(query);
+      if (mounted) setState(() => _spotifyResults = results);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al buscar en Spotify')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSearchingSpotify = false);
+    }
   }
 
   @override
@@ -215,79 +269,165 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       title: Text(
         widget.product == null ? 'Nuevo Producto' : 'Editar Producto',
       ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nombreCtrl,
-                decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                onChanged: (val) {
-                  if (widget.product == null) {
-                    // Generar slug simple automáticamente al crear
-                    _slugCtrl.text = val.toLowerCase().replaceAll(' ', '-');
-                  }
-                },
-              ),
-              TextFormField(
-                controller: _slugCtrl,
-                decoration: const InputDecoration(labelText: 'Slug'),
-                validator: (v) => v!.isEmpty ? 'Requerido' : null,
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: _tipoProducto,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Producto',
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nombreCtrl,
+                  decoration: const InputDecoration(labelText: 'Nombre'),
+                  validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                  onChanged: (val) {
+                    if (widget.product == null) {
+                      _slugCtrl.text = val.toLowerCase().replaceAll(' ', '-');
+                    }
+                  },
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'fisico', child: Text('Físico')),
-                  DropdownMenuItem(value: 'digital', child: Text('Digital')),
-                  DropdownMenuItem(value: 'servicio', child: Text('Servicio')),
-                ],
-                onChanged: (v) => setState(() => _tipoProducto = v!),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _precioCtrl,
-                      decoration: const InputDecoration(labelText: 'Precio'),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _invCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Inventario',
+                TextFormField(
+                  controller: _slugCtrl,
+                  decoration: const InputDecoration(labelText: 'Slug'),
+                  validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: _tipoProducto,
+                  decoration: const InputDecoration(labelText: 'Tipo de Producto'),
+                  items: const [
+                    DropdownMenuItem(value: 'fisico', child: Text('Físico')),
+                    DropdownMenuItem(value: 'digital', child: Text('Digital')),
+                    DropdownMenuItem(value: 'servicio', child: Text('Servicio')),
+                  ],
+                  onChanged: (v) => setState(() => _tipoProducto = v!),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _precioCtrl,
+                        decoration: const InputDecoration(labelText: 'Precio'),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v!.isEmpty ? 'Requerido' : null,
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _invCtrl,
+                        decoration: const InputDecoration(labelText: 'Inventario'),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                      ),
+                    ),
+                  ],
+                ),
+                TextFormField(
+                  controller: _bpmCtrl,
+                  decoration: const InputDecoration(labelText: 'BPM (Opcional)'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextFormField(
+                  controller: _descCtrl,
+                  decoration: const InputDecoration(labelText: 'Descripción'),
+                  maxLines: 2,
+                ),
+                SwitchListTile(
+                  title: const Text('Activo'),
+                  value: _estaActivo,
+                  onChanged: (v) => setState(() => _estaActivo = v),
+                ),
+
+                // ── Sección Spotify ──────────────────────────────────
+                const Divider(height: 24),
+                const Text(
+                  'Vincular track de Spotify',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+
+                // Track seleccionado actualmente
+                if (_selectedTrack != null)
+                  _SelectedTrackCard(
+                    track: _selectedTrack!,
+                    onRemove: () => setState(() => _selectedTrack = null),
+                  ),
+
+                // Buscador
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _spotifySearchCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Buscar canción...',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onFieldSubmitted: (_) => _searchSpotify(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: _isSearchingSpotify
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.search),
+                      onPressed: _isSearchingSpotify ? null : _searchSpotify,
+                    ),
+                  ],
+                ),
+
+                // Resultados de búsqueda
+                if (_spotifyResults.isNotEmpty)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _spotifyResults.length,
+                      itemBuilder: (_, i) {
+                        final track = _spotifyResults[i];
+                        final isSelected = _selectedTrack?.id == track.id;
+                        return ListTile(
+                          dense: true,
+                          leading: track.albumImageUrl != null
+                              ? Image.network(
+                                  track.albumImageUrl!,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, stack) =>
+                                      const Icon(Icons.music_note),
+                                )
+                              : const Icon(Icons.music_note),
+                          title: Text(
+                            track.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            track.artistName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle, color: Colors.green)
+                              : null,
+                          onTap: () => setState(() {
+                            _selectedTrack = track;
+                            _spotifyResults = [];
+                            _spotifySearchCtrl.clear();
+                          }),
+                        );
+                      },
                     ),
                   ),
-                ],
-              ),
-              TextFormField(
-                controller: _bpmCtrl,
-                decoration: const InputDecoration(labelText: 'BPM (Opcional)'),
-                keyboardType: TextInputType.number,
-              ),
-              TextFormField(
-                controller: _descCtrl,
-                decoration: const InputDecoration(labelText: 'Descripción'),
-                maxLines: 2,
-              ),
-              SwitchListTile(
-                title: const Text('Activo'),
-                value: _estaActivo,
-                onChanged: (v) => setState(() => _estaActivo = v),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -309,6 +449,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 inventario: int.parse(_invCtrl.text),
                 bpm: int.tryParse(_bpmCtrl.text),
                 estaActivo: _estaActivo,
+                spotifyTrackId: _selectedTrack?.id,
+                spotifyTrackName: _selectedTrack?.name,
+                spotifyArtistName: _selectedTrack?.artistName,
+                spotifyPreviewUrl: _selectedTrack?.previewUrl,
+                spotifyAlbumImageUrl: _selectedTrack?.albumImageUrl,
               );
               widget.onSave(newProduct);
             }
@@ -316,6 +461,40 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
           child: const Text('Guardar'),
         ),
       ],
+    );
+  }
+}
+
+/// Muestra el track de Spotify seleccionado con opción de quitar.
+class _SelectedTrackCard extends StatelessWidget {
+  final SpotifyTrack track;
+  final VoidCallback onRemove;
+
+  const _SelectedTrackCard({required this.track, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        dense: true,
+        leading: track.albumImageUrl != null
+            ? Image.network(
+                track.albumImageUrl!,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, stack) => const Icon(Icons.music_note),
+              )
+            : const Icon(Icons.music_note),
+        title: Text(track.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(track.artistName, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: IconButton(
+          icon: const Icon(Icons.close, color: Colors.red),
+          onPressed: onRemove,
+          tooltip: 'Quitar track',
+        ),
+      ),
     );
   }
 }
