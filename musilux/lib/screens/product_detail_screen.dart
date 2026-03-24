@@ -26,6 +26,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Extraemos el ID del producto de los argumentos de la ruta.

@@ -78,8 +78,9 @@ class Product {
 
   // Getter para obtener la imagen principal de forma segura. Retorna un placeholder si no hay.
   String get imageUrl {
-    if (multimedia.isEmpty)
+    if (multimedia.isEmpty) {
       return 'https://placehold.co/300x300/png?text=Sin+Imagen';
+    }
     final mainMedia = multimedia.firstWhere(
       (m) => m.esPrincipal,
       orElse: () => multimedia.first,
