@@ -4,15 +4,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RolController;
 use App\Http\Controllers\SpotifyController;
 use Illuminate\Support\Facades\DB;
 
 // ──────────────────────────────────────────────
-// Rutas de Autenticación (públicas)
+// Roles (público — necesario antes del registro)
+// ──────────────────────────────────────────────
+Route::get('/roles', [RolController::class, 'index']);
+
+// ──────────────────────────────────────────────
+// Autenticación
 // ──────────────────────────────────────────────
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
+
+    // Públicas
+    Route::get('/roles',       [AuthController::class, 'roles']);   // listado provisional en contexto de registro
+    Route::post('/register',   [AuthController::class, 'register']);
+    Route::post('/login',      [AuthController::class, 'login']);
 
     // Requieren token válido
     Route::middleware('auth:sanctum')->group(function () {
@@ -22,20 +31,20 @@ Route::prefix('auth')->group(function () {
 });
 
 // ──────────────────────────────────────────────
-// Rutas de Productos
+// Productos
 // Lectura pública — escritura protegida por token
 // ──────────────────────────────────────────────
-Route::get('/products',       [ProductController::class, 'index']);
-Route::get('/products/{id}',  [ProductController::class, 'show']);
+Route::get('/products',      [ProductController::class, 'index']);
+Route::get('/products/{id}', [ProductController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/products',          [ProductController::class, 'store']);
-    Route::put('/products/{id}',      [ProductController::class, 'update']);
-    Route::delete('/products/{id}',   [ProductController::class, 'destroy']);
+    Route::post('/products',        [ProductController::class, 'store']);
+    Route::put('/products/{id}',    [ProductController::class, 'update']);
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 });
 
 // ──────────────────────────────────────────────
-// Búsqueda Spotify (pública, backend actúa de proxy)
+// Spotify (público — backend actúa de proxy)
 // ──────────────────────────────────────────────
 Route::get('/spotify/search', [SpotifyController::class, 'search']);
 

@@ -12,40 +12,43 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasUuids, HasApiTokens;
 
-    // Apunta a la tabla real del proyecto
     protected $table = 'usuarios';
 
     protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
 
-    // Mapeo de timestamps al esquema de la BD
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = 'actualizado_en';
 
     protected $fillable = [
-        'nombre',
-        'email',
-        'password_hash',
+        'id_rol',
+        'nombres',
+        'apellidos',
+        'correo',
+        'contrasena_hash',
+        'esta_activo',
     ];
 
     protected $hidden = [
-        'password_hash',
+        'contrasena_hash',
     ];
 
-    /**
-     * Laravel usa 'password' como campo de auth por defecto.
-     * Mapeamos 'password' al campo real 'password_hash' de la BD.
-     */
     public function getAuthPassword(): string
     {
-        return $this->password_hash;
+        return $this->contrasena_hash;
+    }
+
+    public function rol()
+    {
+        return $this->belongsTo(Rol::class, 'id_rol');
     }
 
     protected function casts(): array
     {
         return [
-            'creado_en' => 'datetime',
+            'esta_activo'    => 'boolean',
+            'creado_en'      => 'datetime',
             'actualizado_en' => 'datetime',
         ];
     }
