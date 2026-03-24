@@ -12,19 +12,23 @@ class AuthService {
 
   // ── Registro ────────────────────────────────────────────
   Future<AuthResult> register({
-    required String nombre,
-    required String email,
-    required String password,
+    required int idRol,
+    required String nombres,
+    required String apellidos,
+    required String correo,
+    required String contrasena,
   }) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({
-          'nombre': nombre,
-          'email': email,
-          'password': password,
-          'password_confirmation': password,
+          'id_rol': idRol,
+          'nombres': nombres,
+          'apellidos': apellidos,
+          'correo': correo,
+          'contrasena': contrasena,
+          'contrasena_confirmation': contrasena,
         }),
       );
 
@@ -35,8 +39,7 @@ class AuthService {
         return AuthResult.success(data['token'], AuthUser.fromJson(data['user']));
       }
 
-      final message = _extractError(data);
-      return AuthResult.failure(message);
+      return AuthResult.failure(_extractError(data));
     } catch (e) {
       return AuthResult.failure('No se pudo conectar al servidor.');
     }
@@ -51,7 +54,10 @@ class AuthService {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({
+          'correo': email,       // backend usa "correo"
+          'contrasena': password, // backend usa "contrasena"
+        }),
       );
 
       final data = jsonDecode(response.body);
@@ -61,8 +67,7 @@ class AuthService {
         return AuthResult.success(data['token'], AuthUser.fromJson(data['user']));
       }
 
-      final message = _extractError(data);
-      return AuthResult.failure(message);
+      return AuthResult.failure(_extractError(data));
     } catch (e) {
       return AuthResult.failure('No se pudo conectar al servidor.');
     }
@@ -152,14 +157,40 @@ class AuthResult {
 
 class AuthUser {
   final String id;
-  final String nombre;
-  final String email;
+  final int? idRol;
+  final String? rol;
+  final String nombres;
+  final String? apellidos;
+  final String correo;
 
-  AuthUser({required this.id, required this.nombre, required this.email});
+  AuthUser({
+    required this.id,
+    this.idRol,
+    this.rol,
+    required this.nombres,
+    this.apellidos,
+    required this.correo,
+  });
+
+  /// Getters de conveniencia para no romper pantallas que usen .nombre o .email
+  String get nombre => nombres;
+  String get email => correo;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id']?.toString() ?? '',
-        nombre: json['nombre']?.toString() ?? '',
-        email: json['email']?.toString() ?? '',
+        idRol: json['id_rol'] as int?,
+        rol: json['rol']?.toString(),
+        nombres: json['nombres']?.toString() ?? '',
+        apellidos: json['apellidos']?.toString(),
+        correo: json['correo']?.toString() ?? '',
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'id_rol': idRol,
+        'rol': rol,
+        'nombres': nombres,
+        'apellidos': apellidos,
+        'correo': correo,
+      };
 }
