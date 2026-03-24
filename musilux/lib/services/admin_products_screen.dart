@@ -144,7 +144,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: categoryValue,
+                              initialValue: categoryValue,
                               decoration: const InputDecoration(
                                 labelText: 'Categoría',
                               ),

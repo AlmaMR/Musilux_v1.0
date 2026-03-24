@@ -400,7 +400,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                                   width: 40,
                                   height: 40,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, stack) =>
+                                  errorBuilder: (_, _, stack) =>
                                       const Icon(Icons.music_note),
                                 )
                               : const Icon(Icons.music_note),
@@ -484,7 +484,7 @@ class _SelectedTrackCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, stack) => const Icon(Icons.music_note),
+                errorBuilder: (_, _, stack) => const Icon(Icons.music_note),
               )
             : const Icon(Icons.music_note),
         title: Text(track.name, maxLines: 1, overflow: TextOverflow.ellipsis),
