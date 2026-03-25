@@ -104,7 +104,11 @@ class CustomHeader extends StatelessWidget {
             ),
             onPressed: () => Scaffold.of(context).openEndDrawer(),
           ),
-
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white70),
+            tooltip: 'Chatbot',
+            onPressed: () => Navigator.pushNamed(context, '/chatbot'),
+          ),
           // --- NUEVO BOTÓN ADMIN ---
           IconButton(
             icon: const Icon(

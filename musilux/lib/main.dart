@@ -10,6 +10,7 @@ import 'screens/profile_screen.dart';
 import 'screens/admin_products_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
+import 'screens/chatbot_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,8 @@ class MusiluxApp extends StatelessWidget {
         '/admin-products': (context) => const AdminProductsScreen(),
         // Alias para compatibilidad con navegación existente
         '/admin_products': (context) => const AdminProductsScreen(),
+        //Para la ruta del chatbot
+        '/chatbot': (context) => ChatbotScreen(),
       },
       onGenerateRoute: (settings) {
         // Intercepta la ruta dinámica para inyectar el ID directamente desde la URL
