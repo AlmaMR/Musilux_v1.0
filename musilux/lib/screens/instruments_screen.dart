@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
+// ignore_for_file: curly_braces_in_flow_control_structures
 
 class InstrumentsScreen extends StatefulWidget {
   const InstrumentsScreen({super.key});
@@ -95,15 +96,27 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                 ],
               ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 16),
+            Text(
+              '${filteredProducts.length} producto${filteredProducts.length == 1 ? '' : 's'} encontrado${filteredProducts.length == 1 ? '' : 's'}',
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 20),
 
             filteredProducts.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Text(
-                        'No hay productos en esta categoría',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_off_rounded, size: 56, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'No hay productos en esta categoría',
+                            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                          ),
+                        ],
                       ),
                     ),
                   )

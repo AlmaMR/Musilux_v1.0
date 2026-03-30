@@ -73,18 +73,22 @@ class CustomHeader extends StatelessWidget {
           if (!isMobile) ...[
             _NavBarItem(
               title: 'Instrumentos',
+              route: '/instrumentos',
               onTap: () => Navigator.pushNamed(context, '/instrumentos'),
             ),
             _NavBarItem(
               title: 'Iluminación',
+              route: '/iluminacion',
               onTap: () => Navigator.pushNamed(context, '/iluminacion'),
             ),
             _NavBarItem(
               title: 'Vinilos',
+              route: '/vinilos',
               onTap: () => Navigator.pushNamed(context, '/vinilos'),
             ),
             _NavBarItem(
               title: 'Contacto',
+              route: '/contacto',
               onTap: () => Navigator.pushNamed(context, '/contacto'),
             ),
             const SizedBox(width: 20),
@@ -126,23 +130,54 @@ class CustomHeader extends StatelessWidget {
   }
 }
 
-class _NavBarItem extends StatelessWidget {
+class _NavBarItem extends StatefulWidget {
   final String title;
   final VoidCallback onTap;
+  final String? route;
 
-  const _NavBarItem({required this.title, required this.onTap});
+  const _NavBarItem({required this.title, required this.onTap, this.route});
+
+  @override
+  State<_NavBarItem> createState() => _NavBarItemState();
+}
+
+class _NavBarItemState extends State<_NavBarItem> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
+    final currentRoute = ModalRoute.of(context)?.settings.name ?? '';
+    final isActive = widget.route != null && currentRoute == widget.route;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
         child: GestureDetector(
-          onTap: onTap,
-          child: Text(
-            title,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isActive || _hovered
+                      ? AppColors.primaryPurple
+                      : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+            ),
+            child: Text(
+              widget.title,
+              style: TextStyle(
+                color: isActive ? AppColors.primaryPurple : (_hovered ? Colors.white : Colors.white70),
+                fontSize: 14,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
           ),
         ),
       ),
@@ -385,151 +420,149 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 260,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey.shade100,
-                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: AppColors.surface,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onDetailsTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Imagen con badge de oferta ──
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: AppColors.surfaceVariant,
+                      child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: AppColors.surfaceVariant,
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: AppColors.textDisabled,
+                        size: 36,
+                      ),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: tags
-                      .map(
-                        (tag) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryPurple.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            tag,
-                            style: const TextStyle(
-                              color: AppColors.primaryPurple,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
+                  if (isSale)
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.priceSale,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'OFERTA',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '\$${price.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isSale
-                        ? Colors.orange.shade800
-                        : AppColors.primaryPurple,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Información del producto ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (tags.isNotEmpty)
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: tags
+                          .take(2)
+                          .map(
+                            (tag) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.tagBg,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                tag,
+                                style: const TextStyle(
+                                  color: AppColors.tagText,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  if (tags.isNotEmpty) const SizedBox(height: 6),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$${price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryPurple,
+                        ),
+                      ),
+                      FilledButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Agregado al carrito'),
-                            ),
+                            const SnackBar(content: Text('Agregado al carrito')),
                           );
                         },
-                        style: ElevatedButton.styleFrom(
+                        style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primaryPurple,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          elevation: 0,
+                          minimumSize: const Size(36, 36),
+                          padding: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
-                          'Agregar',
-                          style: TextStyle(color: Colors.white, fontSize: 13),
-                        ),
+                        child: const Icon(Icons.add_shopping_cart, size: 18),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed:
-                            onDetailsTap, // <-- Ahora sí utiliza la función dinámica que trae el ID
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          side: const BorderSide(
-                            color: AppColors.primaryPurple,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        child: const Text(
-                          'Detalles',
-                          style: TextStyle(
-                            color: AppColors.primaryPurple,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

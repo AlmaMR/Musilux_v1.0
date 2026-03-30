@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:musilux/models/product.dart';
 import 'package:musilux/services/api_service.dart';
 import '../theme/colors.dart';
@@ -26,6 +27,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Extraemos el ID del producto de los argumentos de la ruta.
@@ -98,11 +100,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                product.imageUrl,
+                              child: CachedNetworkImage(
+                                imageUrl: product.imageUrl,
                                 height: 300,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
+                                placeholder: (ctx, url) => Container(
+                                  height: 300,
+                                  color: AppColors.surfaceVariant,
+                                  child: const Center(child: CircularProgressIndicator()),
+                                ),
+                                errorWidget: (ctx, url, err) => Container(
+                                  height: 300,
+                                  color: AppColors.surfaceVariant,
+                                  child: const Icon(Icons.image_not_supported_outlined, size: 48, color: AppColors.textDisabled),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -159,26 +171,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               Text(
                                 product.nombre,
                                 style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-
-                              // AÑADIDO: Muestra el ID real generado en la base de datos
-                              SelectableText(
-                                'Ref (ID): ${product.id}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 12),
                               Text(
-                                // El precio viene como double, lo formateamos.
                                 '\$${product.precio.toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primaryPurple,
                                 ),
@@ -235,8 +237,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   height: 1.5,
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                              const SizedBox(height: 30),
+                              const SizedBox(height: 24),
 
                               // DEMOS DINÁMICOS DEPENDIENDO DEL TIPO
                               if (product.tipoProducto == 'digital')
@@ -251,53 +252,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               // Botones de Compra
                               Row(
                                 children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Agregado al carrito'),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(
-                                      Icons.shopping_cart,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                    label: const Text(
-                                      'Agregar',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryPurple,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 16,
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Agregado al carrito')),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.add_shopping_cart, size: 18),
+                                      label: const Text('Agregar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppColors.primaryPurple,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
-                                  ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          AppColors.primaryPurpleHover,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 16,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Redirigiendo a pago...')),
+                                        );
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.primaryPurple,
+                                        side: const BorderSide(color: AppColors.primaryPurple),
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
-                                    ),
-                                    child: const Text(
-                                      'Comprar Ahora',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
+                                      child: const Text('Comprar Ahora', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                                     ),
                                   ),
                                 ],
@@ -458,36 +443,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildVideoDemo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Prueba de Sonido (Video)',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          height: 150,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.black87,
-            borderRadius: BorderRadius.circular(8),
-            image: const DecorationImage(
-              image: NetworkImage(
-                'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=600',
-              ),
-              fit: BoxFit.cover,
-              opacity: 0.6,
-            ),
-          ),
-          child: const Center(
-            child: Icon(Icons.play_circle_fill, color: Colors.white, size: 48),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildLightingDemo() {
     return Column(

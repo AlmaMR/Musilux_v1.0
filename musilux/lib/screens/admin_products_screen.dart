@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,7 +8,6 @@ import '../services/spotify_service.dart';
 import '../services/firebase_storage_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
-import 'dart:io';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -225,6 +225,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
 
   // Estado de imagen
   XFile? _pickedImage;
+  Uint8List? _pickedImageBytes;
   String? _existingImageUrl;
   bool _isUploadingImage = false;
 
@@ -266,9 +267,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       imageQuality: 85,
     );
     if (picked != null) {
+      final bytes = await picked.readAsBytes();
       setState(() {
         _pickedImage = picked;
-        _existingImageUrl = null; // la nueva imagen reemplaza la anterior
+        _pickedImageBytes = bytes;
+        _existingImageUrl = null;
       });
     }
   }
@@ -391,12 +394,13 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 ),
                 const SizedBox(height: 8),
                 _ImagePickerSection(
-                  pickedImage: _pickedImage,
+                  pickedImageBytes: _pickedImageBytes,
                   existingImageUrl: _existingImageUrl,
                   isUploading: _isUploadingImage,
                   onPick: _pickImage,
                   onRemove: () => setState(() {
                     _pickedImage = null;
+                    _pickedImageBytes = null;
                     _existingImageUrl = null;
                   }),
                 ),
@@ -592,14 +596,14 @@ class _SelectedTrackCard extends StatelessWidget {
 
 /// Sección de selección y previsualización de imagen del producto.
 class _ImagePickerSection extends StatelessWidget {
-  final XFile? pickedImage;
+  final Uint8List? pickedImageBytes;
   final String? existingImageUrl;
   final bool isUploading;
   final VoidCallback onPick;
   final VoidCallback onRemove;
 
   const _ImagePickerSection({
-    required this.pickedImage,
+    required this.pickedImageBytes,
     required this.existingImageUrl,
     required this.isUploading,
     required this.onPick,
@@ -609,14 +613,14 @@ class _ImagePickerSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 1. Nueva imagen seleccionada localmente
-    if (pickedImage != null) {
+    if (pickedImageBytes != null) {
       return Stack(
         alignment: Alignment.topRight,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              File(pickedImage!.path),
+            child: Image.memory(
+              pickedImageBytes!,
               height: 140,
               width: double.infinity,
               fit: BoxFit.cover,

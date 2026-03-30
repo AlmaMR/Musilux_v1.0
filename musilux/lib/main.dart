@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:musilux/screens/contact_screen.dart';
+import 'firebase_options.dart';
 import 'theme/colors.dart';
 import 'screens/home_screen.dart';
 import 'screens/lighting_screen.dart';
@@ -14,7 +15,7 @@ import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Restaura el token guardado para que el admin no pierda la sesión al recargar
   await AuthService().restoreSession();
   runApp(const MusiluxApp());
