@@ -1,6 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../api_constants.dart';
+import '../services/auth_service.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
+
+class _RoleOption {
+  final int id;
+  final String nombre;
+  _RoleOption({required this.id, required this.nombre});
+}
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,18 +20,162 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Estados para controlar qué vista mostrar
-  bool isAuthenticated = false; // ¿Inició sesión?
-  bool isLoginView = true; // true = Mostrar Login, false = Mostrar Registro
+  final _authService = AuthService();
 
-  // Controladores de texto para guardar los datos
+  bool _isAuthenticated = false;
+  bool _isLoginView = true;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  String? _errorMessage;
+
+  // Controllers
   final _nombresController = TextEditingController();
   final _apellidosController = TextEditingController();
   final _correoController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Variable para guardar la fecha
-  String _fechaRegistro = '';
+  // Roles
+  List<_RoleOption> _roles = [];
+  int? _selectedRolId;
+  bool _loadingRoles = false;
+
+  // Usuario autenticado
+  AuthUser? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final user = await _authService.getUser();
+    if (user != null && mounted) {
+      setState(() {
+        _isAuthenticated = true;
+        _currentUser = user;
+      });
+    }
+  }
+
+  Future<void> _loadRoles() async {
+    if (_loadingRoles) return;
+    setState(() => _loadingRoles = true);
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/roles'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final raw = jsonDecode(response.body);
+        final list = (raw is List
+            ? raw
+            : (raw['data'] ?? raw['roles'] ?? [])) as List;
+        final loaded = list
+            .map((r) => _RoleOption(
+                  id: r['id'] as int,
+                  nombre: r['nombre']?.toString() ??
+                      r['name']?.toString() ??
+                      '',
+                ))
+            .toList();
+        if (mounted) {
+          setState(() {
+            _roles = loaded;
+            if (_roles.isNotEmpty) _selectedRolId = _roles.first.id;
+          });
+        }
+      }
+    } catch (_) {
+      // No bloquear el formulario si los roles no cargan
+    } finally {
+      if (mounted) setState(() => _loadingRoles = false);
+    }
+  }
+
+  Future<void> _registrarse() async {
+    if (_nombresController.text.trim().isEmpty ||
+        _apellidosController.text.trim().isEmpty ||
+        _correoController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      setState(() => _errorMessage = 'Completa todos los campos.');
+      return;
+    }
+    if (_selectedRolId == null) {
+      setState(() => _errorMessage = 'Selecciona un rol.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await _authService.register(
+      idRol: _selectedRolId!,
+      nombres: _nombresController.text.trim(),
+      apellidos: _apellidosController.text.trim(),
+      correo: _correoController.text.trim(),
+      contrasena: _passwordController.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.success) {
+      setState(() {
+        _isAuthenticated = true;
+        _currentUser = result.user;
+      });
+    } else {
+      setState(() => _errorMessage = result.error);
+    }
+  }
+
+  Future<void> _iniciarSesion() async {
+    if (_correoController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      setState(() => _errorMessage = 'Completa todos los campos.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await _authService.login(
+      email: _correoController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.success) {
+      setState(() {
+        _isAuthenticated = true;
+        _currentUser = result.user;
+      });
+    } else {
+      setState(() => _errorMessage = result.error);
+    }
+  }
+
+  Future<void> _cerrarSesion() async {
+    await _authService.logout();
+    if (!mounted) return;
+    setState(() {
+      _isAuthenticated = false;
+      _currentUser = null;
+      _isLoginView = true;
+      _errorMessage = null;
+      _correoController.clear();
+      _passwordController.clear();
+      _nombresController.clear();
+      _apellidosController.clear();
+    });
+  }
 
   @override
   void dispose() {
@@ -32,63 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Función para validar la contraseña
-  bool _isValidPassword(String password) {
-    if (password.length < 10) return false;
-    int digitCount = RegExp(r'\d').allMatches(password).length;
-    return digitCount >= 2;
-  }
-
-  // Función para simular el registro
-  void _registrarse() {
-    if (_nombresController.text.isNotEmpty &&
-        _correoController.text.isNotEmpty) {
-      setState(() {
-        // Obtenemos la fecha actual
-        final now = DateTime.now();
-        final meses = [
-          'Ene',
-          'Feb',
-          'Mar',
-          'Abr',
-          'May',
-          'Jun',
-          'Jul',
-          'Ago',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dic',
-        ];
-        _fechaRegistro =
-            '${now.day} de ${meses[now.month - 1]} del ${now.year}';
-
-        isAuthenticated =
-            true; // Iniciamos la sesión automáticamente al registrar
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Llena los campos requeridos')),
-      );
-    }
-  }
-
-  // Función para simular el inicio de sesión
-  void _iniciarSesion() {
-    if (_correoController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty) {
-      setState(() {
-        isAuthenticated = true;
-        // Si no se había registrado (datos vacíos), llenamos datos genéricos de prueba
-        if (_nombresController.text.isEmpty) {
-          _nombresController.text = 'Usuario';
-          _apellidosController.text = 'Musilux';
-          _fechaRegistro = 'Usuario antiguo';
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return BaseLayout(
@@ -96,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
         child: Center(
           child: Container(
-            width: 450, // Ancho máximo para que no se vea gigante en web
+            width: 450,
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -109,10 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            // Decidimos qué vista mostrar dependiendo del estado
-            child: isAuthenticated
+            child: _isAuthenticated
                 ? _buildProfileInfo()
-                : (isLoginView ? _buildLoginForm() : _buildRegisterForm()),
+                : (_isLoginView ? _buildLoginForm() : _buildRegisterForm()),
           ),
         ),
       ),
@@ -123,6 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // VISTA: INFORMACIÓN DEL PERFIL
   // ==========================================
   Widget _buildProfileInfo() {
+    final user = _currentUser;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -133,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 20),
         Text(
-          '${_nombresController.text} ${_apellidosController.text}'.trim(),
+          '${user?.nombres ?? ''} ${user?.apellidos ?? ''}'.trim(),
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -143,33 +240,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          _correoController.text,
+          user?.correo ?? '',
           style: const TextStyle(fontSize: 16, color: Colors.black54),
         ),
+        if (user?.rol != null) ...[
+          const SizedBox(height: 8),
+          Chip(
+            label: Text(user!.rol!),
+            backgroundColor: AppColors.primaryPurple.withOpacity(0.1),
+            labelStyle: const TextStyle(color: AppColors.primaryPurple),
+          ),
+        ],
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
           child: Divider(),
         ),
-
-        _buildInfoRow(Icons.calendar_today, 'Miembro desde', _fechaRegistro),
-        const SizedBox(height: 15),
         _buildInfoRow(
           Icons.shopping_bag_outlined,
           'Mis pedidos',
           '0 pedidos realizados',
         ),
-
         const SizedBox(height: 40),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: () {
-              setState(() {
-                isAuthenticated = false;
-                // Opcional: limpiar datos al cerrar sesión
-                // _passwordController.clear();
-              });
-            },
+            onPressed: _cerrarSesion,
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               foregroundColor: Colors.red,
@@ -237,26 +332,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
           controller: _passwordController,
           isPassword: true,
         ),
+        const SizedBox(height: 16),
 
-        const SizedBox(height: 30),
+        // Selector de rol
+        _loadingRoles
+            ? const Center(
+                child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : DropdownButtonFormField<int>(
+                value: _selectedRolId,
+                decoration: InputDecoration(
+                  labelText: 'Rol',
+                  prefixIcon: const Icon(Icons.badge_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide:
+                        const BorderSide(color: AppColors.primaryPurple),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                hint: const Text('Selecciona un rol'),
+                items: _roles
+                    .map((r) => DropdownMenuItem(
+                          value: r.id,
+                          child: Text(r.nombre),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedRolId = v),
+              ),
+
+        const SizedBox(height: 12),
+        if (_errorMessage != null) _buildError(_errorMessage!),
+
+        const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _registrarse,
+            onPressed: _isLoading ? null : _registrarse,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryPurpleHover,
+              backgroundColor: AppColors.primaryPurple,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: const Text(
-              'Registrarse',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Registrarse',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
           ),
         ),
         const SizedBox(height: 15),
         Center(
           child: TextButton(
-            onPressed: () => setState(() => isLoginView = true),
+            onPressed: () => setState(() {
+              _isLoginView = true;
+              _errorMessage = null;
+            }),
             child: const Text(
               '¿Ya tienes cuenta? Inicia sesión aquí',
               style: TextStyle(color: AppColors.primaryPurple),
@@ -296,26 +440,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
           controller: _passwordController,
           isPassword: true,
         ),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 30),
+        if (_errorMessage != null) _buildError(_errorMessage!),
+
+        const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _iniciarSesion,
+            onPressed: _isLoading ? null : _iniciarSesion,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryPurpleHover,
+              backgroundColor: AppColors.primaryPurple,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: const Text(
-              'Ingresar',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Ingresar',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
           ),
         ),
         const SizedBox(height: 15),
         Center(
           child: TextButton(
-            onPressed: () => setState(() => isLoginView = false),
+            onPressed: () {
+              setState(() {
+                _isLoginView = false;
+                _errorMessage = null;
+              });
+              if (_roles.isEmpty) _loadRoles();
+            },
             child: const Text(
               '¿No tienes cuenta? Regístrate aquí',
               style: TextStyle(color: AppColors.primaryPurple),
@@ -326,7 +488,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Helper para construir los inputs
+  // ── Helpers ──────────────────────────────────────────────
+
+  Widget _buildError(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+      ),
+    );
+  }
+
   Widget _buildTextField(
     String label, {
     required TextEditingController controller,
@@ -335,7 +514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return TextField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword && _obscurePassword,
       keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
@@ -344,6 +523,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderSide: const BorderSide(color: AppColors.primaryPurple),
           borderRadius: BorderRadius.circular(8),
         ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              )
+            : null,
       ),
     );
   }

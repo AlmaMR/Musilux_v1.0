@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:musilux/screens/contact_screen.dart';
 import 'theme/colors.dart';
 import 'screens/home_screen.dart';
@@ -13,6 +14,7 @@ import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   // Restaura el token guardado para que el admin no pierda la sesión al recargar
   await AuthService().restoreSession();
   runApp(const MusiluxApp());
@@ -39,9 +41,9 @@ class MusiluxApp extends StatelessWidget {
         '/contacto': (context) => const ContactScreen(),
         '/perfil': (context) => const ProfileScreen(),
         '/login': (context) => const LoginScreen(),
-        '/admin-products': (context) => const AdminProductsScreen(),
+        '/admin-products': (context) => const _AdminGuard(),
         // Alias para compatibilidad con navegación existente
-        '/admin_products': (context) => const AdminProductsScreen(),
+        '/admin_products': (context) => const _AdminGuard(),
       },
       onGenerateRoute: (settings) {
         // Intercepta la ruta dinámica para inyectar el ID directamente desde la URL
@@ -65,6 +67,35 @@ class MusiluxApp extends StatelessWidget {
           );
         }
         return null;
+      },
+    );
+  }
+}
+
+/// Guard que protege las rutas de administración.
+/// Redirige a /login si no hay token guardado.
+class _AdminGuard extends StatelessWidget {
+  const _AdminGuard();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: AuthService().getToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.data == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              Navigator.of(context).pushReplacementNamed('/login');
+            }
+          });
+          return const Scaffold(body: SizedBox.shrink());
+        }
+        return const AdminProductsScreen();
       },
     );
   }

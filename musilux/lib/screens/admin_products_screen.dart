@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../features/catalog/data/product_model.dart';
 import '../features/catalog/data/api_service.dart';
 import '../services/spotify_service.dart';
+import '../services/firebase_storage_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
+import 'dart:io';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -140,12 +144,29 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   itemBuilder: (context, index) {
                     final product = products[index];
                     return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.primaryPurple.withValues(
-                          alpha: 0.1,
-                        ),
-                        child: Text(product.tipoProducto[0].toUpperCase()),
-                      ),
+                      leading: product.imagenUrl != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: CachedNetworkImage(
+                                imageUrl: product.imagenUrl!,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                placeholder: (ctx, url) => const CircleAvatar(
+                                  child: Icon(Icons.image, size: 20),
+                                ),
+                                errorWidget: (ctx, url, err) => CircleAvatar(
+                                  backgroundColor: AppColors.primaryPurple.withValues(alpha: 0.1),
+                                  child: Text(product.tipoProducto[0].toUpperCase()),
+                                ),
+                              ),
+                            )
+                          : CircleAvatar(
+                              backgroundColor: AppColors.primaryPurple.withValues(
+                                alpha: 0.1,
+                              ),
+                              child: Text(product.tipoProducto[0].toUpperCase()),
+                            ),
                       title: Text(product.nombre),
                       subtitle: Text(
                         '\$${product.precio} - Stock: ${product.inventario}',
@@ -202,7 +223,13 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   List<SpotifyTrack> _spotifyResults = [];
   bool _isSearchingSpotify = false;
 
+  // Estado de imagen
+  XFile? _pickedImage;
+  String? _existingImageUrl;
+  bool _isUploadingImage = false;
+
   final SpotifyService _spotifyService = SpotifyService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -216,6 +243,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _bpmCtrl = TextEditingController(text: p?.bpm?.toString() ?? '');
     _tipoProducto = p?.tipoProducto ?? 'fisico';
     _estaActivo = p?.estaActivo ?? true;
+    _existingImageUrl = p?.imagenUrl;
 
     // Si el producto ya tenía un track vinculado, reconstruirlo
     if (p?.spotifyTrackId != null) {
@@ -227,6 +255,21 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         previewUrl: p.spotifyPreviewUrl,
         albumImageUrl: p.spotifyAlbumImageUrl,
       );
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (picked != null) {
+      setState(() {
+        _pickedImage = picked;
+        _existingImageUrl = null; // la nueva imagen reemplaza la anterior
+      });
     }
   }
 
@@ -340,6 +383,24 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                   onChanged: (v) => setState(() => _estaActivo = v),
                 ),
 
+                // ── Sección Imagen ───────────────────────────────────
+                const Divider(height: 24),
+                const Text(
+                  'Imagen del producto',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _ImagePickerSection(
+                  pickedImage: _pickedImage,
+                  existingImageUrl: _existingImageUrl,
+                  isUploading: _isUploadingImage,
+                  onPick: _pickImage,
+                  onRemove: () => setState(() {
+                    _pickedImage = null;
+                    _existingImageUrl = null;
+                  }),
+                ),
+
                 // ── Sección Spotify ──────────────────────────────────
                 const Divider(height: 24),
                 const Text(
@@ -437,28 +498,58 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              final newProduct = ProductModel(
-                id: widget.product?.id,
-                nombre: _nombreCtrl.text,
-                slug: _slugCtrl.text,
-                descripcion: _descCtrl.text,
-                tipoProducto: _tipoProducto,
-                precio: double.parse(_precioCtrl.text),
-                inventario: int.parse(_invCtrl.text),
-                bpm: int.tryParse(_bpmCtrl.text),
-                estaActivo: _estaActivo,
-                spotifyTrackId: _selectedTrack?.id,
-                spotifyTrackName: _selectedTrack?.name,
-                spotifyArtistName: _selectedTrack?.artistName,
-                spotifyPreviewUrl: _selectedTrack?.previewUrl,
-                spotifyAlbumImageUrl: _selectedTrack?.albumImageUrl,
-              );
-              widget.onSave(newProduct);
+          onPressed: _isUploadingImage ? null : () async {
+            if (!_formKey.currentState!.validate()) return;
+
+            String? finalImageUrl = _existingImageUrl;
+
+            // Si hay una imagen nueva, subirla a Firebase antes de guardar
+            if (_pickedImage != null) {
+              setState(() => _isUploadingImage = true);
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                // Usamos el ID existente o un timestamp como carpeta temporal
+                final folder = widget.product?.id ?? 'nuevo-${DateTime.now().millisecondsSinceEpoch}';
+                finalImageUrl = await FirebaseStorageService.uploadProductImage(
+                  _pickedImage!,
+                  folder,
+                );
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Error al subir imagen: $e')),
+                );
+                setState(() => _isUploadingImage = false);
+                return;
+              }
+              setState(() => _isUploadingImage = false);
             }
+
+            final newProduct = ProductModel(
+              id: widget.product?.id,
+              nombre: _nombreCtrl.text,
+              slug: _slugCtrl.text,
+              descripcion: _descCtrl.text,
+              tipoProducto: _tipoProducto,
+              precio: double.parse(_precioCtrl.text),
+              inventario: int.parse(_invCtrl.text),
+              bpm: int.tryParse(_bpmCtrl.text),
+              estaActivo: _estaActivo,
+              imagenUrl: finalImageUrl,
+              spotifyTrackId: _selectedTrack?.id,
+              spotifyTrackName: _selectedTrack?.name,
+              spotifyArtistName: _selectedTrack?.artistName,
+              spotifyPreviewUrl: _selectedTrack?.previewUrl,
+              spotifyAlbumImageUrl: _selectedTrack?.albumImageUrl,
+            );
+            widget.onSave(newProduct);
           },
-          child: const Text('Guardar'),
+          child: _isUploadingImage
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Guardar'),
         ),
       ],
     );
@@ -484,7 +575,7 @@ class _SelectedTrackCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, stack) => const Icon(Icons.music_note),
+                errorBuilder: (ctx, err, stack) => const Icon(Icons.music_note),
               )
             : const Icon(Icons.music_note),
         title: Text(track.name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -494,6 +585,86 @@ class _SelectedTrackCard extends StatelessWidget {
           onPressed: onRemove,
           tooltip: 'Quitar track',
         ),
+      ),
+    );
+  }
+}
+
+/// Sección de selección y previsualización de imagen del producto.
+class _ImagePickerSection extends StatelessWidget {
+  final XFile? pickedImage;
+  final String? existingImageUrl;
+  final bool isUploading;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  const _ImagePickerSection({
+    required this.pickedImage,
+    required this.existingImageUrl,
+    required this.isUploading,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. Nueva imagen seleccionada localmente
+    if (pickedImage != null) {
+      return Stack(
+        alignment: Alignment.topRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(
+              File(pickedImage!.path),
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.cancel, color: Colors.red),
+            onPressed: onRemove,
+          ),
+        ],
+      );
+    }
+
+    // 2. URL de imagen existente (Firebase o externa)
+    if (existingImageUrl != null) {
+      return Stack(
+        alignment: Alignment.topRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: CachedNetworkImage(
+              imageUrl: existingImageUrl!,
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (ctx, url) => const Center(child: CircularProgressIndicator()),
+              errorWidget: (ctx, url, err) => Container(
+                height: 140,
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.broken_image, color: Colors.grey),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.cancel, color: Colors.red),
+            onPressed: onRemove,
+          ),
+        ],
+      );
+    }
+
+    // 3. Sin imagen — mostrar botón de selección
+    return OutlinedButton.icon(
+      onPressed: isUploading ? null : onPick,
+      icon: const Icon(Icons.add_photo_alternate_outlined),
+      label: const Text('Seleccionar imagen'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 48),
       ),
     );
   }

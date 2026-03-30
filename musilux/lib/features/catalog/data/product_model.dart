@@ -8,6 +8,8 @@ class ProductModel {
   final int inventario;
   final int? bpm;
   final bool estaActivo;
+  // URL de imagen principal (Firebase Storage o externa)
+  final String? imagenUrl;
   // Campos de integración Spotify
   final String? spotifyTrackId;
   final String? spotifyTrackName;
@@ -25,6 +27,7 @@ class ProductModel {
     required this.inventario,
     this.bpm,
     this.estaActivo = true,
+    this.imagenUrl,
     this.spotifyTrackId,
     this.spotifyTrackName,
     this.spotifyArtistName,
@@ -33,6 +36,17 @@ class ProductModel {
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    // Extraer la URL de la imagen principal desde el array de multimedia
+    String? imagenUrl;
+    final multimedia = json['multimedia'] as List<dynamic>?;
+    if (multimedia != null && multimedia.isNotEmpty) {
+      final principal = multimedia.firstWhere(
+        (m) => m['es_principal'] == true || m['es_principal'] == 1,
+        orElse: () => multimedia.first,
+      );
+      imagenUrl = principal['url_archivo']?.toString();
+    }
+
     return ProductModel(
       id: json['id']?.toString(),
       nombre: json['nombre'] ?? '',
@@ -43,6 +57,7 @@ class ProductModel {
       inventario: int.tryParse(json['inventario'].toString()) ?? 0,
       bpm: json['bpm'] != null ? int.tryParse(json['bpm'].toString()) : null,
       estaActivo: json['esta_activo'] == 1 || json['esta_activo'] == true,
+      imagenUrl: imagenUrl,
       spotifyTrackId: json['spotify_track_id']?.toString(),
       spotifyTrackName: json['spotify_track_name']?.toString(),
       spotifyArtistName: json['spotify_artist_name']?.toString(),
@@ -62,6 +77,7 @@ class ProductModel {
       'inventario': inventario,
       'bpm': bpm,
       'esta_activo': estaActivo,
+      if (imagenUrl != null) 'imagen_url': imagenUrl,
       'spotify_track_id': spotifyTrackId,
       'spotify_track_name': spotifyTrackName,
       'spotify_artist_name': spotifyArtistName,
