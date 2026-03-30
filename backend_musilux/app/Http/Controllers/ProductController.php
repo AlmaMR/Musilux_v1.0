@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductMedia;
 use Illuminate\Http\Request;
 use App\Http\Resources\ProductListResource;
 use App\Http\Resources\ProductDetailResource;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Str; // Importamos Str para generar los slugs
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -63,6 +64,7 @@ class ProductController extends Controller
             'spotify_artist_name' => 'nullable|string|max:255',
             'spotify_preview_url' => 'nullable|url|max:500',
             'spotify_album_image_url' => 'nullable|url|max:500',
+            'imagen_url' => 'nullable|url|max:2048',
         ]);
 
         // Generar Slug automáticamente
@@ -73,7 +75,19 @@ class ProductController extends Controller
             $data['inventario'] = 0;
         }
 
+        $imagenUrl = $data['imagen_url'] ?? null;
+        unset($data['imagen_url']);
+
         $product = Product::create($data);
+
+        if ($imagenUrl) {
+            ProductMedia::create([
+                'id_producto'     => $product->id,
+                'tipo_multimedia' => 'imagen',
+                'url_archivo'     => $imagenUrl,
+                'es_principal'    => true,
+            ]);
+        }
 
         return new ProductDetailResource($product->load(['multimedia', 'category']));
     }
@@ -105,13 +119,29 @@ class ProductController extends Controller
             'spotify_artist_name' => 'nullable|string|max:255',
             'spotify_preview_url' => 'nullable|url|max:500',
             'spotify_album_image_url' => 'nullable|url|max:500',
+            'imagen_url' => 'nullable|url|max:2048',
         ]);
 
         if (isset($data['nombre'])) {
             $data['slug'] = Str::slug($data['nombre']) . '-' . uniqid();
         }
 
+        $imagenUrl = $data['imagen_url'] ?? null;
+        unset($data['imagen_url']);
+
         $product->update($data);
+
+        if ($imagenUrl) {
+            // Reemplaza la imagen principal anterior
+            $product->multimedia()->where('es_principal', true)->delete();
+            ProductMedia::create([
+                'id_producto'     => $product->id,
+                'tipo_multimedia' => 'imagen',
+                'url_archivo'     => $imagenUrl,
+                'es_principal'    => true,
+            ]);
+        }
+
         return new ProductDetailResource($product->fresh()->load(['multimedia', 'category']));
     }
 

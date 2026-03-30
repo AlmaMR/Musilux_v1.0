@@ -16,6 +16,7 @@ class ProductListResource extends JsonResource
             'nombre' => $this->nombre,
             'slug' => $this->slug,
             'precio' => (float) $this->precio,
+            'inventario' => (int) $this->inventario,
             'tipo_producto' => $this->tipo_producto,
             'esta_activo' => (bool) $this->esta_activo,
             'multimedia' => $this->whenLoaded('multimedia', function () {
