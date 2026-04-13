@@ -7,7 +7,7 @@ import '../widgets/shared_components.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  final String? productId; // Agregado para recibir desde la URL
+  final String? productId;
   const ProductDetailScreen({super.key, this.productId});
 
   @override
@@ -21,6 +21,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isPlaying = false;
   String? _productId;
 
+  bool get _isMobile => MediaQuery.of(context).size.width < 800;
+
   @override
   void dispose() {
     _audioPlayer.dispose();
@@ -30,21 +32,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Extraemos el ID del producto de los argumentos de la ruta.
-    // Lo hacemos aquí porque ModalRoute.of(context) no está disponible en initState.
     final args = ModalRoute.of(context)?.settings.arguments;
-
-    // Damos prioridad al ID que viene inyectado por la URL (widget.productId)
     final extractedId = widget.productId ?? args?.toString();
-
-    // Si el ID cambia (o es la primera vez), iniciamos una nueva carga.
     if (extractedId != null && extractedId != _productId) {
       setState(() {
         _productId = extractedId;
         _productFuture = _apiService.fetchProductById(_productId!);
       });
     } else if (_productId == null) {
-      // Manejo de caso donde no se pasa ID
       setState(() {
         _productFuture = Future.error('No se proporcionó un ID de producto.');
       });
@@ -53,264 +48,289 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hPad = _isMobile ? 20.0 : 48.0;
     return BaseLayout(
       child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 30),
-
-            // CONTENEDOR PRINCIPAL DEL PRODUCTO
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+        padding: EdgeInsets.fromLTRB(hPad, 32, hPad, 48),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.all(_isMobile ? 20 : 40),
+          child: FutureBuilder<Product>(
+            future: _productFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  height: 300,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError) {
+                return SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                        const SizedBox(height: 12),
+                        Text('Error: ${snapshot.error}',
+                            style: const TextStyle(color: AppColors.textSecondary)),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-              padding: const EdgeInsets.all(40),
-              child: FutureBuilder<Product>(
-                future: _productFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(child: Text('Producto no encontrado.'));
-                  }
-
-                  final product = snapshot.data!;
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Columna Izquierda: Imágenes
-                      Expanded(
-                        flex: 5,
-                        child: Column(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: CachedNetworkImage(
-                                imageUrl: product.imageUrl,
-                                height: 300,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                placeholder: (ctx, url) => Container(
-                                  height: 300,
-                                  color: AppColors.surfaceVariant,
-                                  child: const Center(child: CircularProgressIndicator()),
-                                ),
-                                errorWidget: (ctx, url, err) => Container(
-                                  height: 300,
-                                  color: AppColors.surfaceVariant,
-                                  child: const Icon(Icons.image_not_supported_outlined, size: 48, color: AppColors.textDisabled),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            if (product.multimedia.isNotEmpty)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.arrow_back_ios, size: 16),
-                                  const SizedBox(width: 10),
-                                  ...product.multimedia.map(
-                                    (media) => Padding(
-                                      padding: const EdgeInsets.only(right: 10),
-                                      child: _Thumbnail(media.urlArchivo),
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_forward_ios, size: 16),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 40),
-
-                      // Columna Derecha: Info
-                      Expanded(
-                        flex: 5,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // CHIP DE CATEGORÍA
-                              if (product.categoria != null)
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryPurple.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    product.categoria!.nombre.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: AppColors.primaryPurple,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              Text(
-                                product.nombre,
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                '\$${product.precio.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryPurple,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // INVENTARIO Y BPM
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.inventory_2_outlined,
-                                    size: 18,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    product.inventario > 0
-                                        ? 'Stock: ${product.inventario} disponibles'
-                                        : 'Agotado',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: product.inventario > 0
-                                          ? Colors.green[700]
-                                          : Colors.red,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (product.bpm != null) ...[
-                                    const SizedBox(width: 20),
-                                    const Icon(
-                                      Icons.speed,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'BPM: ${product.bpm}',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              Text(
-                                product.descripcion ??
-                                    'No hay descripción disponible.',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
-                                  height: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-
-                              // DEMOS DINÁMICOS DEPENDIENDO DEL TIPO
-                              if (product.tipoProducto == 'digital')
-                                _buildAudioDemo(),
-                              if (product.tipoProducto == 'fisico')
-                                _buildSpotifyDemo(product),
-                              if (product.tipoProducto == 'servicio')
-                                _buildLightingDemo(),
-
-                              const SizedBox(height: 40),
-
-                              // Botones de Compra
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Agregado al carrito')),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.add_shopping_cart, size: 18),
-                                      label: const Text('Agregar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: AppColors.primaryPurple,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Redirigiendo a pago...')),
-                                        );
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppColors.primaryPurple,
-                                        side: const BorderSide(color: AppColors.primaryPurple),
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      child: const Text('Comprar Ahora', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+                );
+              }
+              if (!snapshot.hasData) {
+                return const SizedBox(
+                  height: 200,
+                  child: Center(child: Text('Producto no encontrado.')),
+                );
+              }
+              final product = snapshot.data!;
+              return _isMobile
+                  ? _buildMobileLayout(product)
+                  : _buildDesktopLayout(product);
+            },
+          ),
         ),
       ),
     );
   }
 
-  // --- COMPONENTES DE DEMO (Sin cambios) ---
+  // ── Layouts ─────────────────────────────────────────────────
+
+  Widget _buildMobileLayout(Product product) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildImageColumn(product),
+        const SizedBox(height: 24),
+        _buildInfoColumn(product),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(Product product) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 5, child: _buildImageColumn(product)),
+        const SizedBox(width: 40),
+        Expanded(flex: 5, child: _buildInfoColumn(product)),
+      ],
+    );
+  }
+
+  // ── Columna de imagen ────────────────────────────────────────
+
+  Widget _buildImageColumn(Product product) {
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: CachedNetworkImage(
+            imageUrl: product.imageUrl,
+            height: 300,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (ctx, url) => Container(
+              height: 300,
+              color: AppColors.surfaceVariant,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (ctx, url, err) => Container(
+              height: 300,
+              color: AppColors.surfaceVariant,
+              child: const Icon(
+                Icons.image_not_supported_outlined,
+                size: 48,
+                color: AppColors.textDisabled,
+              ),
+            ),
+          ),
+        ),
+        if (product.multimedia.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 64,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: product.multimedia.length,
+              separatorBuilder: (_, i) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => _Thumbnail(product.multimedia[i].urlArchivo),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── Columna de información ───────────────────────────────────
+
+  Widget _buildInfoColumn(Product product) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Chip de categoría
+        if (product.categoria != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              product.categoria!.nombre.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.primaryPurple,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+
+        // Nombre
+        Text(
+          product.nombre,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Precio
+        Text(
+          '\$${product.precio.toStringAsFixed(2)}',
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryPurple,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Stock y BPM
+        Wrap(
+          spacing: 16,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  product.inventario > 0
+                      ? Icons.check_circle_outline
+                      : Icons.cancel_outlined,
+                  size: 18,
+                  color: product.inventario > 0 ? AppColors.success : AppColors.error,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  product.inventario > 0
+                      ? 'Stock: ${product.inventario} disponibles'
+                      : 'Agotado',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: product.inventario > 0 ? AppColors.success : AppColors.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            if (product.bpm != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.speed, size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Text('${product.bpm} BPM',
+                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Descripción
+        if (product.descripcion != null && product.descripcion!.isNotEmpty)
+          Text(
+            product.descripcion!,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        const SizedBox(height: 24),
+
+        // Demos según tipo
+        if (product.tipoProducto == 'digital') _buildAudioDemo(),
+        if (product.tipoProducto == 'fisico') _buildSpotifyDemo(product),
+        if (product.tipoProducto == 'servicio') _buildLightingDemo(),
+
+        const SizedBox(height: 32),
+
+        // Botones de compra
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Agregado al carrito')),
+                ),
+                icon: const Icon(Icons.add_shopping_cart, size: 18),
+                label: const Text('Agregar',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primaryPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Redirigiendo a pago...')),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryPurple,
+                  side: const BorderSide(color: AppColors.primaryPurple),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Comprar Ahora',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Demos ────────────────────────────────────────────────────
+
   Widget _buildAudioDemo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Demo de Audio',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const Text('Demo de Audio',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -352,17 +372,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildSpotifyDemo(Product product) {
-    if (product.spotifyPreviewUrl == null) {
-      return const SizedBox.shrink(); // Sin preview, no muestra nada
-    }
+    if (product.spotifyPreviewUrl == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '🎵 Demo de la Canción',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const Text('Demo de la Canción',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
@@ -375,8 +391,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               if (product.spotifyAlbumImageUrl != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.network(
-                    product.spotifyAlbumImageUrl!,
+                  child: CachedNetworkImage(
+                    imageUrl: product.spotifyAlbumImageUrl!,
                     width: 56,
                     height: 56,
                     fit: BoxFit.cover,
@@ -387,36 +403,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      product.spotifyTrackName ?? '',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      product.spotifyArtistName ?? '',
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
+                    Text(product.spotifyTrackName ?? '',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14),
+                        overflow: TextOverflow.ellipsis),
+                    Text(product.spotifyArtistName ?? '',
+                        style: const TextStyle(color: Colors.white54, fontSize: 12)),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Preview 30s',
-                      style: TextStyle(color: Color(0xFF1DB954), fontSize: 11),
-                    ),
+                    const Text('Preview 30s',
+                        style: TextStyle(color: Color(0xFF1DB954), fontSize: 11)),
                   ],
                 ),
               ),
               StatefulBuilder(
                 builder: (context, setInner) => IconButton(
                   icon: Icon(
-                    _isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_filled,
+                    _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                     color: const Color(0xFF1DB954),
                     size: 44,
                   ),
@@ -425,9 +429,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       await _audioPlayer.pause();
                       setInner(() => _isPlaying = false);
                     } else {
-                      await _audioPlayer.play(
-                        UrlSource(product.spotifyPreviewUrl!),
-                      );
+                      await _audioPlayer.play(UrlSource(product.spotifyPreviewUrl!));
                       setInner(() => _isPlaying = true);
                       _audioPlayer.onPlayerComplete.listen((_) {
                         if (mounted) setInner(() => _isPlaying = false);
@@ -443,15 +445,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-
   Widget _buildLightingDemo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Simulador de Colores DMX',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const Text('Simulador de Colores DMX',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -467,16 +466,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Selecciona un color para ver una vista previa.',
-          style: TextStyle(fontSize: 12, color: Colors.black54),
-        ),
+        const Text('Selecciona un color para ver una vista previa.',
+            style: TextStyle(fontSize: 12, color: Colors.black54)),
       ],
     );
   }
 }
 
-// --- WIDGETS INTERNOS ---
+// ── Widgets internos ─────────────────────────────────────────
 
 class _ColorCircle extends StatelessWidget {
   final Color color;
@@ -513,8 +510,8 @@ class _Thumbnail extends StatelessWidget {
       width: 60,
       height: 60,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade200),
         image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
       ),
     );

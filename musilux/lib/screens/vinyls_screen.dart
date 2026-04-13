@@ -118,6 +118,15 @@ class _VinylsScreenState extends State<VinylsScreen> {
                     .where((p) => p.idCategoria == '3')
                     .toList();
 
+                // Filtro por género (busca en nombre del producto)
+                if (_selectedCategory != 'Todos') {
+                  products = products
+                      .where((p) => p.nombre
+                          .toLowerCase()
+                          .contains(_selectedCategory.toLowerCase()))
+                      .toList();
+                }
+
                 // Ordenamiento
                 if (_selectedSort == 'Precio: Menor a Mayor') {
                   products.sort((a, b) => a.precio.compareTo(b.precio));
@@ -126,12 +135,21 @@ class _VinylsScreenState extends State<VinylsScreen> {
                 }
 
                 if (products.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Text(
-                        'No hay discos en esta categoría',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.album_outlined, size: 56, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          Text(
+                            _selectedCategory == 'Todos'
+                                ? 'No hay discos disponibles.'
+                                : 'No hay discos de "$_selectedCategory".',
+                            style: const TextStyle(fontSize: 16, color: Colors.black54),
+                          ),
+                        ],
                       ),
                     ),
                   );

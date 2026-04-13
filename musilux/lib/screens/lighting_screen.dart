@@ -46,10 +46,11 @@ class _LightingScreenState extends State<LightingScreen> {
     int crossAxisCount = 4;
     if (screenWidth < 600) {
       crossAxisCount = 1;
-    } else if (screenWidth < 900)
+    } else if (screenWidth < 900) {
       crossAxisCount = 2;
-    else if (screenWidth < 1200)
+    } else if (screenWidth < 1200) {
       crossAxisCount = 3;
+    }
 
     return BaseLayout(
       child: Padding(
@@ -113,6 +114,15 @@ class _LightingScreenState extends State<LightingScreen> {
                     .where((p) => p.idCategoria == '2')
                     .toList();
 
+                // Filtro por subcategoría (busca en nombre del producto)
+                if (_selectedCategory != 'Todos') {
+                  products = products
+                      .where((p) => p.nombre
+                          .toLowerCase()
+                          .contains(_selectedCategory.toLowerCase()))
+                      .toList();
+                }
+
                 // Ordenamiento real por precio DB
                 if (_selectedSort == 'Precio: Menor a Mayor') {
                   products.sort((a, b) => a.precio.compareTo(b.precio));
@@ -121,12 +131,21 @@ class _LightingScreenState extends State<LightingScreen> {
                 }
 
                 if (products.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Text(
-                        'No hay productos en esta categoría',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lightbulb_outline, size: 56, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          Text(
+                            _selectedCategory == 'Todos'
+                                ? 'No hay productos disponibles.'
+                                : 'No hay productos de "$_selectedCategory".',
+                            style: const TextStyle(fontSize: 16, color: Colors.black54),
+                          ),
+                        ],
                       ),
                     ),
                   );

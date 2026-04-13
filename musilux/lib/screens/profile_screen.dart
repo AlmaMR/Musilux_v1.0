@@ -192,15 +192,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
         child: Center(
+          child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 450),
           child: Container(
-            width: 450,
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -212,7 +213,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   // ==========================================
@@ -247,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           Chip(
             label: Text(user!.rol!),
-            backgroundColor: AppColors.primaryPurple.withOpacity(0.1),
+            backgroundColor: AppColors.primaryPurple.withValues(alpha:0.1),
             labelStyle: const TextStyle(color: AppColors.primaryPurple),
           ),
         ],

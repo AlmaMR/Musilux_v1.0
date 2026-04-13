@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
-  // Detecta automáticamente si estás en Android (Emulador) o en Windows
+  /// IP de la máquina de desarrollo en la red local.
+  /// Cámbiala si tu IP cambia (ver con `ipconfig` en Windows).
+  static const String _devIp = '192.168.1.100';
+  static const int _devPort = 8080;
+
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:8080/api';
+      // Web corre en el mismo host, localhost funciona
+      return 'http://localhost:$_devPort/api';
     }
-    // Para Android Emulator usamos 10.0.2.2, para otros (iOS/Windows) localhost
-    return 'http://10.0.2.2:8080/api';
+    // Dispositivo físico Y emulador usan la IP real de la PC
+    return 'http://$_devIp:$_devPort/api';
   }
 
   static const String productsEndpoint = '/products';
