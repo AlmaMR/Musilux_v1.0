@@ -159,6 +159,7 @@ class AuthUser {
   final String id;
   final int? idRol;
   final String? rol;
+  final List<String> permisos;
   final String nombres;
   final String? apellidos;
   final String correo;
@@ -167,19 +168,28 @@ class AuthUser {
     required this.id,
     this.idRol,
     this.rol,
+    List<String>? permisos,
     required this.nombres,
     this.apellidos,
     required this.correo,
-  });
+  }) : permisos = permisos ?? [];
 
   /// Getters de conveniencia para no romper pantallas que usen .nombre o .email
   String get nombre => nombres;
   String get email => correo;
 
+  bool get esSuperAdmin => rol == 'superadmin';
+
+  bool tienePermiso(String permiso) =>
+      esSuperAdmin || permisos.contains(permiso);
+
+  bool esRol(String rolNombre) => rol == rolNombre;
+
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id']?.toString() ?? '',
         idRol: json['id_rol'] as int?,
         rol: json['rol']?.toString(),
+        permisos: List<String>.from(json['permisos'] ?? []),
         nombres: json['nombres']?.toString() ?? '',
         apellidos: json['apellidos']?.toString(),
         correo: json['correo']?.toString() ?? '',
@@ -189,6 +199,7 @@ class AuthUser {
         'id': id,
         'id_rol': idRol,
         'rol': rol,
+        'permisos': permisos,
         'nombres': nombres,
         'apellidos': apellidos,
         'correo': correo,

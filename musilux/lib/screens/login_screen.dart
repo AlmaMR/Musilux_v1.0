@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../core/app_router.dart';
 import '../theme/colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,7 +15,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _authService = AuthService();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -34,7 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    final result = await _authService.login(
+    final auth = context.read<AuthProvider>();
+
+    final result = await auth.login(
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
     );
@@ -44,8 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result.success) {
-      // Navega al panel admin y elimina la pantalla de login del stack
-      Navigator.pushReplacementNamed(context, '/admin-products');
+      // Redirigir a la pantalla home según el rol del usuario
+      final ruta = AppRouter.homeSegunRol(auth.rolActual);
+      Navigator.of(context).pushNamedAndRemoveUntil(ruta, (_) => false);
     } else {
       setState(() => _errorMessage = result.error);
     }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:musilux/screens/contact_screen.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'theme/colors.dart';
+import 'core/app_router.dart';
+import 'providers/auth_provider.dart';
+
+// Pantallas existentes
 import 'screens/home_screen.dart';
 import 'screens/lighting_screen.dart';
 import 'screens/instruments_screen.dart';
@@ -11,14 +15,30 @@ import 'screens/product_detail_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/admin_products_screen.dart';
 import 'screens/login_screen.dart';
-import 'services/auth_service.dart';
+import 'screens/contact_screen.dart';
+
+// Dashboards admin
+import 'screens/admin/super_admin_dashboard.dart';
+import 'screens/admin/pedidos_dashboard.dart';
+import 'screens/admin/usuarios_dashboard.dart';
+import 'screens/admin/inventario_dashboard.dart';
+import 'screens/admin/ventas_dashboard.dart';
+import 'screens/admin/soporte_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Restaura el token guardado para que el admin no pierda la sesión al recargar
-  await AuthService().restoreSession();
-  runApp(const MusiluxApp());
+
+  // Inicializar el provider y restaurar sesión antes de mostrar la UI
+  final authProvider = AuthProvider();
+  await authProvider.init();
+
+  runApp(
+    ChangeNotifierProvider.value(
+      value: authProvider,
+      child: const MusiluxApp(),
+    ),
+  );
 }
 
 class MusiluxApp extends StatelessWidget {
@@ -35,32 +55,49 @@ class MusiluxApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const HomeScreen(),
-        '/instrumentos': (context) => const InstrumentsScreen(),
-        '/iluminacion': (context) => const LightingScreen(),
-        '/vinilos': (context) => const VinylsScreen(),
-        '/contacto': (context) => const ContactScreen(),
-        '/perfil': (context) => const ProfileScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/admin-products': (context) => const _AdminGuard(),
-        // Alias para compatibilidad con navegación existente
-        '/admin_products': (context) => const _AdminGuard(),
+        // ── Públicas ────────────────────────────────────────────────────────
+        AppRoutes.catalogoPublico: (context) => const HomeScreen(),
+        AppRoutes.login:           (context) => const LoginScreen(),
+        '/instrumentos':           (context) => const InstrumentsScreen(),
+        '/iluminacion':            (context) => const LightingScreen(),
+        '/vinilos':                (context) => const VinylsScreen(),
+        '/contacto':               (context) => const ContactScreen(),
+        AppRoutes.perfil:          (context) => const ProfileScreen(),
+
+        // ── Panel legacy (mantiene compatibilidad) ───────────────────────
+        AppRoutes.adminProducts:   (context) => const _AuthGuard(child: AdminProductsScreen()),
+        '/admin_products':         (context) => const _AuthGuard(child: AdminProductsScreen()),
+
+        // ── Dashboards admin por rol ─────────────────────────────────────
+        AppRoutes.superAdminDashboard: (context) => const _AuthGuard(
+              child: SuperAdminDashboard(),
+            ),
+        AppRoutes.pedidosDashboard: (context) => const _AuthGuard(
+              child: PedidosDashboard(),
+            ),
+        AppRoutes.usuariosDashboard: (context) => const _AuthGuard(
+              child: UsuariosDashboard(),
+            ),
+        AppRoutes.inventarioDashboard: (context) => const _AuthGuard(
+              child: InventarioDashboard(),
+            ),
+        AppRoutes.ventasDashboard: (context) => const _AuthGuard(
+              child: VentasDashboard(),
+            ),
+        AppRoutes.soporteDashboard: (context) => const _AuthGuard(
+              child: SoporteDashboard(),
+            ),
       },
       onGenerateRoute: (settings) {
-        // Intercepta la ruta dinámica para inyectar el ID directamente desde la URL
+        // Ruta dinámica de detalle de producto
         if (settings.name != null &&
             settings.name!.startsWith('/detalle-producto/')) {
-          final productId = settings.name!.replaceFirst(
-            '/detalle-producto/',
-            '',
-          );
+          final productId = settings.name!.replaceFirst('/detalle-producto/', '');
           return MaterialPageRoute(
             builder: (context) => ProductDetailScreen(productId: productId),
-            settings:
-                settings, // Esto hace que Flutter Web actualice la barra de direcciones
+            settings: settings,
           );
         }
-        // Fallback por si alguna pantalla usa la navegación antigua
         if (settings.name == '/detalle-producto') {
           return MaterialPageRoute(
             builder: (context) => const ProductDetailScreen(),
@@ -73,31 +110,26 @@ class MusiluxApp extends StatelessWidget {
   }
 }
 
-/// Guard que protege las rutas de administración.
-/// Redirige a /login si no hay token guardado.
-class _AdminGuard extends StatelessWidget {
-  const _AdminGuard();
+/// Guard que verifica autenticación antes de mostrar pantallas protegidas.
+/// Redirige a /login si no hay sesión activa.
+class _AuthGuard extends StatelessWidget {
+  final Widget child;
+
+  const _AuthGuard({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: AuthService().getToken(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+    final auth = context.watch<AuthProvider>();
+
+    if (!auth.estaAutenticado) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
         }
-        if (snapshot.data == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              Navigator.of(context).pushReplacementNamed('/login');
-            }
-          });
-          return const Scaffold(body: SizedBox.shrink());
-        }
-        return const AdminProductsScreen();
-      },
-    );
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return child;
   }
 }
