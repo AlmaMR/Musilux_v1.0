@@ -44,6 +44,31 @@ class User extends Authenticatable
         return $this->belongsTo(Rol::class, 'id_rol');
     }
 
+    /**
+     * Verifica si el usuario tiene un permiso específico.
+     * El superadmin siempre retorna true.
+     */
+    public function tienePermiso(string $permiso): bool
+    {
+        if ($this->rol->nombre === 'superadmin') {
+            return true;
+        }
+
+        $this->loadMissing('rol.permisos');
+
+        return $this->rol->permisos->contains('nombre', $permiso);
+    }
+
+    /**
+     * Verifica si el usuario tiene uno de los roles indicados.
+     */
+    public function esRol(string|array $roles): bool
+    {
+        $roles = is_array($roles) ? $roles : [$roles];
+
+        return in_array($this->rol->nombre, $roles);
+    }
+
     protected function casts(): array
     {
         return [

@@ -67,8 +67,8 @@ class AuthController extends Controller
             'esta_activo'     => true,
         ]);
 
-        // Cargar el rol para incluirlo en la respuesta
-        $user->load('rol');
+        // Cargar el rol y sus permisos para incluirlos en la respuesta
+        $user->load('rol.permisos');
 
         $token = $user->createToken('musilux-token')->plainTextToken;
 
@@ -111,7 +111,7 @@ class AuthController extends Controller
         // Revocar tokens anteriores — una sesión activa por usuario
         $user->tokens()->delete();
 
-        $user->load('rol');
+        $user->load('rol.permisos');
 
         $token = $user->createToken('musilux-token')->plainTextToken;
 
@@ -138,7 +138,7 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load('rol');
+        $user = $request->user()->load('rol.permisos');
 
         return response()->json($this->formatUser($user));
     }
@@ -152,6 +152,7 @@ class AuthController extends Controller
             'id'          => $user->id,
             'id_rol'      => $user->id_rol,
             'rol'         => $user->rol ? $user->rol->nombre : null,
+            'permisos'    => $user->rol ? $user->rol->permisos->pluck('nombre') : [],
             'nombres'     => $user->nombres,
             'apellidos'   => $user->apellidos,
             'correo'      => $user->correo,
