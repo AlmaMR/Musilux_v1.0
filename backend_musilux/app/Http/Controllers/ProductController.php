@@ -62,9 +62,11 @@ class ProductController extends Controller
             'spotify_track_id' => 'nullable|string|max:255',
             'spotify_track_name' => 'nullable|string|max:255',
             'spotify_artist_name' => 'nullable|string|max:255',
-            'spotify_preview_url' => 'nullable|url|max:500',
-            'spotify_album_image_url' => 'nullable|url|max:500',
-            'imagen_url' => 'nullable|url|max:2048',
+            'spotify_preview_url' => 'nullable|string|max:500',
+            'spotify_album_image_url' => 'nullable|string|max:500',
+            // Usamos 'string' en lugar de 'url' porque FILTER_VALIDATE_URL de PHP
+            // puede rechazar URLs de Firebase Storage que contienen %2F en el path.
+            'imagen_url' => 'nullable|string|max:2048',
         ]);
 
         // Generar Slug automáticamente
@@ -89,7 +91,9 @@ class ProductController extends Controller
             ]);
         }
 
-        return new ProductDetailResource($product->load(['multimedia', 'category']));
+        return (new ProductDetailResource($product->load(['multimedia', 'category'])))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -117,9 +121,9 @@ class ProductController extends Controller
             'spotify_track_id' => 'nullable|string|max:255',
             'spotify_track_name' => 'nullable|string|max:255',
             'spotify_artist_name' => 'nullable|string|max:255',
-            'spotify_preview_url' => 'nullable|url|max:500',
-            'spotify_album_image_url' => 'nullable|url|max:500',
-            'imagen_url' => 'nullable|url|max:2048',
+            'spotify_preview_url' => 'nullable|string|max:500',
+            'spotify_album_image_url' => 'nullable|string|max:500',
+            'imagen_url' => 'nullable|string|max:2048',
         ]);
 
         if (isset($data['nombre'])) {

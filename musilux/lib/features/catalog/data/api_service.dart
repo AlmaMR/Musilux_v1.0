@@ -39,7 +39,8 @@ class ProductService {
       headers: _headers,
       body: jsonEncode(product.toJson()),
     );
-    return response.statusCode == 201;
+    // Aceptamos 200 y 201 por compatibilidad con Laravel Resource (retorna 200 por defecto)
+    return response.statusCode == 201 || response.statusCode == 200;
   }
 
   Future<bool> updateProduct(ProductModel product) async {

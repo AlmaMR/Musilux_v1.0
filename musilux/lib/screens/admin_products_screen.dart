@@ -26,7 +26,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshProducts();
+    // initState: asignación directa sin setState (el widget no está montado aún)
+    _productsFuture = _productService.getProducts();
   }
 
   void _refreshProducts() {
@@ -46,19 +47,23 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
           if (!ctx.mounted) return;
           Navigator.pop(ctx);
+
+          // Usamos el contexto del Scaffold padre (sigue montado tras cerrar el diálogo)
           _refreshProducts();
-          ScaffoldMessenger.of(ctx).showSnackBar(
-            SnackBar(
-              content: Text(
-                success
-                    ? product == null
-                        ? 'Producto creado correctamente'
-                        : 'Producto actualizado correctamente'
-                    : 'Error al guardar el producto. Revisa la consola del servidor.',
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  success
+                      ? product == null
+                          ? 'Producto creado correctamente'
+                          : 'Producto actualizado correctamente'
+                      : 'Error al guardar el producto. Revisa la consola.',
+                ),
+                backgroundColor: success ? Colors.green : Colors.red,
               ),
-              backgroundColor: success ? Colors.green : Colors.red,
-            ),
-          );
+            );
+          }
         },
       ),
     );
@@ -108,9 +113,12 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // BaseLayout usa SingleChildScrollView internamente → restricciones verticales
+    // ilimitadas → NO usar Expanded ni ListView sin shrinkWrap aquí.
     return BaseLayout(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // ── Header ────────────────────────────────────────────────────────
           Container(
@@ -128,7 +136,6 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             child: Row(
               children: [
-                // FIX: Expanded evita el overflow del título en pantallas pequeñas
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,79 +174,82 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           ),
 
           // ── Lista de productos ─────────────────────────────────────────────
-          Expanded(
-            child: FutureBuilder<List<ProductModel>>(
-              future: _productsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-                        const SizedBox(height: 12),
-                        Text('Error: ${snapshot.error}'),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: _refreshProducts,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 64,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay productos registrados',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: () => _showProductForm(),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Agregar primer producto'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final products = snapshot.data!;
-                return RefreshIndicator(
-                  onRefresh: () async => _refreshProducts(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: products.length,
-                    itemBuilder: (context, index) =>
-                        _ProductCard(
-                          product: products[index],
-                          onEdit: () => _showProductForm(product: products[index]),
-                          onDelete: () => _deleteProduct(
-                            products[index].id!,
-                            products[index].nombre,
-                          ),
-                        ),
+          FutureBuilder<List<ProductModel>>(
+            future: _productsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                      const SizedBox(height: 12),
+                      Text('Error: ${snapshot.error}'),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _refreshProducts,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar'),
+                      ),
+                    ],
                   ),
                 );
-              },
-            ),
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay productos registrados',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: () => _showProductForm(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Agregar primer producto'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final products = snapshot.data!;
+              // shrinkWrap + NeverScrollableScrollPhysics porque el scroll
+              // externo ya lo maneja BaseLayout (SingleChildScrollView).
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: products.length,
+                itemBuilder: (context, index) => _ProductCard(
+                  product: products[index],
+                  onEdit: () => _showProductForm(product: products[index]),
+                  onDelete: () => _deleteProduct(
+                    products[index].id!,
+                    products[index].nombre,
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -407,7 +417,7 @@ class _PlaceholderAvatar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class ProductFormDialog extends StatefulWidget {
   final ProductModel? product;
-  final Function(ProductModel) onSave;
+  final Future<void> Function(ProductModel) onSave;
 
   const ProductFormDialog({super.key, this.product, required this.onSave});
 
@@ -563,8 +573,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       spotifyAlbumImageUrl: _selectedTrack?.albumImageUrl,
     );
 
-    widget.onSave(product);
-    setState(() => _isSaving = false);
+    await widget.onSave(product);
+    if (mounted) setState(() => _isSaving = false);
   }
 
   @override
@@ -1007,13 +1017,16 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: AppColors.primaryPurple),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            color: AppColors.primaryPurple,
-            letterSpacing: 0.3,
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.primaryPurple,
+              letterSpacing: 0.3,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -1106,19 +1119,23 @@ class _SelectedTrackCard extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 16),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.red, size: 18),
-              onPressed: onRemove,
-              tooltip: 'Quitar track',
-              padding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
-            ),
-          ],
+        trailing: SizedBox(
+          width: 56,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 16),
+              const SizedBox(width: 2),
+              InkWell(
+                onTap: onRemove,
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close, color: Colors.red, size: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1176,40 +1193,54 @@ class _ImagePickerSection extends StatelessWidget {
       );
     }
 
-    // Sin imagen — botón de selección con borde punteado
+    // Sin imagen — área de selección moderna con borde punteado
     return GestureDetector(
       onTap: isUploading ? null : onPick,
-      child: Container(
-        height: 120,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 130,
         width: double.infinity,
         decoration: BoxDecoration(
           border: Border.all(
-            color: Colors.grey.shade400,
-            style: BorderStyle.solid,
+            color: isUploading ? Colors.grey.shade300 : Colors.grey.shade400,
             width: 1.5,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: Colors.grey.shade50,
+          color: isUploading ? Colors.grey.shade100 : Colors.grey.shade50,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_photo_alternate_outlined,
-              size: 36,
-              color: Colors.grey.shade500,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toca para seleccionar imagen',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            ),
-            Text(
-              'PNG, JPG — máx. 5 MB',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
-            ),
-          ],
-        ),
+        child: isUploading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 32,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Toca para seleccionar imagen',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'PNG, JPG — máx. 5 MB',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                  ),
+                ],
+              ),
       ),
     );
   }
