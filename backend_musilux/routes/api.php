@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SpotifyController;
@@ -20,6 +21,11 @@ Route::prefix('auth')->group(function () {
         Route::get('/me',      [AuthController::class, 'me']);
     });
 });
+
+// ──────────────────────────────────────────────
+// Rutas del chatbot
+// ──────────────────────────────────────────────
+Route::post('/chatbot', [ChatbotController::class, 'chat']);
 
 // ──────────────────────────────────────────────
 // Rutas de Productos

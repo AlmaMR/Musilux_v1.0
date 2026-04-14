@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musilux/theme/colors.dart';
+import '../models/product.dart';
+import '../services/api_service.dart';
 import '../services/openai_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
@@ -12,6 +14,7 @@ class ChatbotScreen extends StatefulWidget {
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController controller = TextEditingController();
   final OpenAIService service = OpenAIService();
+  final ApiService apiService = ApiService();
   final ScrollController scrollController = ScrollController();
 
   // 🔥 Historial del chat
@@ -19,7 +22,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     {
       "role": "system",
       "content":
-          "Eres un asistente de Musilux. Ayudas a los usuarios a obtener información sobre nuestros productos, responde de forma clara y amigable."
+          "Eres un asistente virtual de Musilux. Ayudas a los usuarios a obtener información sobre nuestros productos de forma clara, precisa y amigable. "
+          "quiero que respondas a las preguntas de los usuarios sobre nuestros productos, promociones, horarios de atención"
+          "IMPORTANTE: Nuestra tienda se limita exclusivamente a la venta de vinilos, instrumentos musicales y equipos de iluminación. "
+          "Si el usuario pregunta por productos fuera de estas categorías, responde amablemente que no los manejamos y redirige la conversación a nuestras categorías disponibles."
     }
   ];
 
@@ -39,8 +45,25 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
     _scrollToBottom();
 
+    String productSummary = '';
     try {
-      final reply = await service.sendMessage(chatHistory);
+      final products = await apiService.fetchProducts();
+      productSummary = _buildProductSummary(products);
+    } catch (e) {
+      print('Error cargando productos del backend: $e');
+    }
+
+    final requestMessages = List<Map<String, String>>.from(chatHistory);
+    if (productSummary.isNotEmpty) {
+      requestMessages.add({
+        "role": "system",
+        "content":
+            "Información actualizada de productos y precios desde el backend:\n$productSummary"
+      });
+    }
+
+    try {
+      final reply = await service.sendMessage(requestMessages);
 
       setState(() {
         messages.add({"role": "bot", "text": reply});
@@ -59,6 +82,27 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
       _scrollToBottom();
     }
+  }
+
+  String _buildProductSummary(List<Product> products) {
+    if (products.isEmpty) return '';
+
+    final lines = products.take(15).map((product) {
+      final category = product.categoria?.nombre ?? 'Sin categoría';
+      final description = product.descripcion?.replaceAll('\n', ' ') ?? '';
+      final price = product.precio.toStringAsFixed(2);
+      final inventory = product.inventario;
+
+      final base =
+          '- ${product.nombre} (${category}) [${product.tipoProducto}] - \$${price} - stock: $inventory';
+      return description.isNotEmpty ? '$base - $description' : base;
+    }).toList();
+
+    if (products.length > 15) {
+      lines.add('...y más productos disponibles.');
+    }
+
+    return lines.join('\n');
   }
 
   void _scrollToBottom() {
