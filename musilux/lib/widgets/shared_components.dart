@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../theme/colors.dart';
+import '../providers/auth_provider.dart';
+import '../core/app_router.dart';
 
 // ==========================================
 // LAYOUT BASE (Header, Footer, Drawers)
@@ -110,20 +113,136 @@ class CustomHeader extends StatelessWidget {
             onPressed: () => Scaffold.of(context).openEndDrawer(),
           ),
 
-          // --- NUEVO BOTÓN ADMIN ---
-          IconButton(
-            icon: const Icon(
-              Icons.admin_panel_settings_outlined,
-              color: Colors.white70,
-            ),
-            tooltip: 'Admin Productos',
-            onPressed: () => Navigator.pushNamed(context, '/admin_products'),
-          ),
+          // --- BOTÓN ADMIN INTELIGENTE (visible solo para roles admin) ---
+          const _AdminMenuButton(),
 
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white70),
             onPressed: () => Navigator.pushNamed(context, '/perfil'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOTÓN ADMIN INTELIGENTE
+// Visible solo para roles administrativos. Superadmin ve un menú con todas las
+// secciones; cada admin específico va directo a su dashboard.
+// ─────────────────────────────────────────────────────────────────────────────
+class _AdminMenuButton extends StatelessWidget {
+  const _AdminMenuButton();
+
+  // Etiqueta legible por rol
+  static String _labelRol(String rol) {
+    switch (rol) {
+      case 'admin_pedidos':    return 'Gestión de Pedidos';
+      case 'admin_usuarios':   return 'Gestión de Usuarios';
+      case 'admin_inventario': return 'Inventario';
+      case 'admin_ventas':     return 'Ventas';
+      case 'admin_soporte':    return 'Soporte';
+      default:                 return 'Panel Admin';
+    }
+  }
+
+  // Icono por sección
+  static IconData _iconRol(String rol) {
+    switch (rol) {
+      case 'admin_pedidos':    return Icons.receipt_long_outlined;
+      case 'admin_usuarios':   return Icons.people_outline;
+      case 'admin_inventario': return Icons.inventory_2_outlined;
+      case 'admin_ventas':     return Icons.bar_chart_outlined;
+      case 'admin_soporte':    return Icons.support_agent_outlined;
+      default:                 return Icons.admin_panel_settings_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    // Sin sesión o rol no-admin → oculto
+    if (!auth.estaAutenticado) return const SizedBox.shrink();
+    if (auth.esCliente || auth.rolActual == 'visitante') {
+      return const SizedBox.shrink();
+    }
+
+    // ── Superadmin: menú desplegable con TODAS las secciones ──────────────
+    if (auth.esSuperAdmin) {
+      return PopupMenuButton<String>(
+        tooltip: 'Panel de Administración',
+        onSelected: (ruta) => Navigator.pushNamed(context, ruta),
+        offset: const Offset(0, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        icon: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            const Icon(Icons.admin_panel_settings, color: AppColors.primaryPurple),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Colors.amber,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
+        itemBuilder: (_) => [
+          // Cabecera informativa (no navegable)
+          PopupMenuItem(
+            enabled: false,
+            height: 36,
+            child: Text(
+              'SUPER ADMIN — Acceso total',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryPurple,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const PopupMenuDivider(),
+          _menuItem(AppRoutes.superAdminDashboard,
+              Icons.dashboard_outlined, 'Dashboard principal'),
+          _menuItem(AppRoutes.pedidosDashboard,
+              Icons.receipt_long_outlined, 'Gestión de Pedidos'),
+          _menuItem(AppRoutes.usuariosDashboard,
+              Icons.people_outline, 'Gestión de Usuarios'),
+          _menuItem(AppRoutes.inventarioDashboard,
+              Icons.inventory_2_outlined, 'Inventario / Productos'),
+          _menuItem(AppRoutes.ventasDashboard,
+              Icons.bar_chart_outlined, 'Ventas'),
+          _menuItem(AppRoutes.soporteDashboard,
+              Icons.support_agent_outlined, 'Soporte'),
+        ],
+      );
+    }
+
+    // ── Admin específico: botón directo a su dashboard ────────────────────
+    final ruta  = AppRouter.homeSegunRol(auth.rolActual);
+    final label = _labelRol(auth.rolActual);
+    final icono = _iconRol(auth.rolActual);
+
+    return IconButton(
+      icon: Icon(icono, color: Colors.white70),
+      tooltip: label,
+      onPressed: () => Navigator.pushNamed(context, ruta),
+    );
+  }
+
+  /// Construye un ítem de menú con icono y texto.
+  static PopupMenuItem<String> _menuItem(
+      String ruta, IconData icono, String label) {
+    return PopupMenuItem<String>(
+      value: ruta,
+      child: Row(
+        children: [
+          Icon(icono, size: 18, color: Colors.grey.shade700),
+          const SizedBox(width: 10),
+          Text(label, style: const TextStyle(fontSize: 13)),
         ],
       ),
     );
