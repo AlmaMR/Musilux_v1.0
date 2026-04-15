@@ -7,18 +7,69 @@ import '../../theme/colors.dart';
 class SuperAdminDashboard extends StatelessWidget {
   const SuperAdminDashboard({super.key});
 
+  static const _modulos = [
+    _Modulo(
+      icon: Icons.inventory_2_outlined,
+      label: 'Inventario',
+      sublabel: 'Productos y stock',
+      color: Colors.indigo,
+      route: AppRoutes.inventarioDashboard,
+    ),
+    _Modulo(
+      icon: Icons.receipt_long_outlined,
+      label: 'Pedidos',
+      sublabel: 'Gestión de órdenes',
+      color: Colors.orange,
+      route: AppRoutes.pedidosDashboard,
+    ),
+    _Modulo(
+      icon: Icons.people_outlined,
+      label: 'Usuarios',
+      sublabel: 'Cuentas y roles',
+      color: Colors.teal,
+      route: AppRoutes.usuariosDashboard,
+    ),
+    _Modulo(
+      icon: Icons.bar_chart_outlined,
+      label: 'Ventas',
+      sublabel: 'Reportes y métricas',
+      color: Colors.green,
+      route: AppRoutes.ventasDashboard,
+    ),
+    _Modulo(
+      icon: Icons.support_agent_outlined,
+      label: 'Soporte',
+      sublabel: 'Tickets de ayuda',
+      color: Colors.blue,
+      route: AppRoutes.soporteDashboard,
+    ),
+    _Modulo(
+      icon: Icons.admin_panel_settings_outlined,
+      label: 'Productos',
+      sublabel: 'Panel de administración',
+      color: Colors.deepPurple,
+      route: AppRoutes.adminProducts,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final nombre = auth.usuario?.nombres ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.headerBg,
       appBar: AppBar(
-        title: Text('Super Admin — ${auth.usuario?.nombres ?? ''}'),
+        title: const Text('Panel de Administración'),
         backgroundColor: AppColors.primaryPurple,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.store_outlined),
+            tooltip: 'Ver tienda',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.catalogoPublico),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar sesión',
@@ -34,47 +85,98 @@ class SuperAdminDashboard extends StatelessWidget {
           ),
         ],
       ),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(16),
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _DashboardCard(
-            icon: Icons.inventory_2_outlined,
-            label: 'Inventario',
-            color: Colors.indigo,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.inventarioDashboard),
+          // Cabecera de bienvenida
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            decoration: BoxDecoration(
+              color: AppColors.primaryPurple.withOpacity(0.08),
+              border: Border(
+                bottom: BorderSide(
+                  color: AppColors.primaryPurple.withOpacity(0.15),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primaryPurple,
+                  radius: 24,
+                  child: Text(
+                    nombre.isNotEmpty ? nombre[0].toUpperCase() : 'A',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bienvenido, $nombre',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryPurple,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Super Admin',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          _DashboardCard(
-            icon: Icons.receipt_long_outlined,
-            label: 'Pedidos',
-            color: Colors.orange,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.pedidosDashboard),
+
+          // Título de sección
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Text(
+              'Módulos disponibles',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
-          _DashboardCard(
-            icon: Icons.people_outlined,
-            label: 'Usuarios',
-            color: Colors.teal,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.usuariosDashboard),
-          ),
-          _DashboardCard(
-            icon: Icons.bar_chart_outlined,
-            label: 'Ventas',
-            color: Colors.green,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.ventasDashboard),
-          ),
-          _DashboardCard(
-            icon: Icons.support_agent_outlined,
-            label: 'Soporte',
-            color: Colors.blue,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.soporteDashboard),
-          ),
-          _DashboardCard(
-            icon: Icons.admin_panel_settings_outlined,
-            label: 'Panel Productos',
-            color: Colors.deepPurple,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.adminProducts),
+
+          // Grid de módulos
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.1,
+              ),
+              itemCount: _modulos.length,
+              itemBuilder: (context, i) => _ModuloCard(modulo: _modulos[i]),
+            ),
           ),
         ],
       ),
@@ -82,45 +184,70 @@ class SuperAdminDashboard extends StatelessWidget {
   }
 }
 
-class _DashboardCard extends StatelessWidget {
+// Datos inmutables de cada módulo — sin capturar contexto.
+class _Modulo {
   final IconData icon;
   final String label;
+  final String sublabel;
   final Color color;
-  final VoidCallback onTap;
+  final String route;
 
-  const _DashboardCard({
+  const _Modulo({
     required this.icon,
     required this.label,
+    required this.sublabel,
     required this.color,
-    required this.onTap,
+    required this.route,
   });
+}
+
+class _ModuloCard extends StatelessWidget {
+  final _Modulo modulo;
+
+  const _ModuloCard({required this.modulo});
 
   @override
   Widget build(BuildContext context) {
+    // Navegación desde el contexto propio del card — nunca desde un contexto capturado.
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withOpacity(0.15),
-              radius: 32,
-              child: Icon(icon, color: color, size: 32),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: color,
-                fontSize: 15,
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => Navigator.of(context).pushNamed(modulo.route),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                backgroundColor: modulo.color.withOpacity(0.12),
+                radius: 28,
+                child: Icon(modulo.icon, color: modulo.color, size: 28),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                modulo.label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: modulo.color,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                modulo.sublabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

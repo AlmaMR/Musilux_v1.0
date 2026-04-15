@@ -47,6 +47,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result.success) {
+      // DEBUG TEMPORAL — muestra en consola el rol recibido del backend
+      debugPrint('═══════════════════════════════════');
+      debugPrint('ROL recibido: "${auth.rolActual}"');
+      debugPrint('esSuperAdmin: ${auth.esSuperAdmin}');
+      debugPrint('Permisos: ${auth.usuario?.permisos}');
+      debugPrint('═══════════════════════════════════');
+
       // Redirigir a la pantalla home según el rol del usuario
       final ruta = AppRouter.homeSegunRol(auth.rolActual);
       Navigator.of(context).pushNamedAndRemoveUntil(ruta, (_) => false);

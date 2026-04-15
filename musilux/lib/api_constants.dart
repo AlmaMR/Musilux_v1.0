@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class ApiConstants {
   /// IP de la máquina de desarrollo en la red local.
   /// Cámbiala si tu IP cambia (ver con `ipconfig` en Windows).
-  static const String _devIp = '192.168.137.100';
+  static const String _devIp = '10.11.5.71';
   static const int _devPort = 8080;
 
   static String get baseUrl {
