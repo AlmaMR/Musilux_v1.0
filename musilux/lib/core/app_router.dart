@@ -6,6 +6,9 @@ class AppRoutes {
   static const catalogoPublico = '/';
   static const login           = '/login';
 
+  // Chat IA
+  static const chat = '/chat';
+
   // Cliente
   static const tiendaHome = '/tienda';
   static const carrito    = '/carrito';
@@ -76,6 +79,7 @@ class AppRouter {
       AppRoutes.wishlist,
       AppRoutes.perfil,
       AppRoutes.soporte,
+      AppRoutes.chat,
     },
     'admin_pedidos': {
       AppRoutes.pedidosDashboard,

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\CuponController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\RolAdminController;
+use App\Http\Controllers\ChatController;
 
 // ──────────────────────────────────────────────
 // Roles (público — necesario antes del registro)
@@ -50,6 +51,12 @@ Route::get('/spotify/search', [SpotifyController::class, 'search']);
 // Rutas autenticadas
 // ──────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
+
+    // ──────────────────────────────────────────────
+    // ChatBot IA — disponible para todos los usuarios autenticados
+    // ──────────────────────────────────────────────
+    Route::post('/chat',          [ChatController::class, 'enviarMensaje']);
+    Route::get('/chat/history',   [ChatController::class, 'historial']);
 
     // Productos — escritura protegida por permiso granular
     Route::middleware('permiso:productos.crear')->group(function () {

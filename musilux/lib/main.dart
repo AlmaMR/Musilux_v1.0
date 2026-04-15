@@ -5,6 +5,8 @@ import 'firebase_options.dart';
 import 'theme/colors.dart';
 import 'core/app_router.dart';
 import 'providers/auth_provider.dart';
+import 'providers/chat_provider.dart';
+import 'screens/chat_screen.dart';
 
 // Pantallas existentes
 import 'screens/home_screen.dart';
@@ -34,8 +36,13 @@ void main() async {
   await authProvider.init();
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: authProvider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: authProvider),
+        // ChatProvider tiene ciclo de vida propio por sesión; se crea aquí
+        // para que persista entre navegaciones.
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+      ],
       child: const MusiluxApp(),
     ),
   );
@@ -87,6 +94,9 @@ class MusiluxApp extends StatelessWidget {
         AppRoutes.soporteDashboard: (context) => const _AuthGuard(
               child: SoporteDashboard(),
             ),
+
+        // ── ChatBot IA ───────────────────────────────────────────────────────
+        AppRoutes.chat: (context) => const _AuthGuard(child: ChatScreen()),
       },
       onGenerateRoute: (settings) {
         // Ruta dinámica de detalle de producto

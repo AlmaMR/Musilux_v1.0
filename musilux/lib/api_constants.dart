@@ -16,4 +16,6 @@ class ApiConstants {
   }
 
   static const String productsEndpoint = '/products';
+  static const String chatEndpoint = '/chat';
+  static const String chatHistoryEndpoint = '/chat/history';
 }
