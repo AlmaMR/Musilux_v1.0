@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_constants.dart';
 import '../features/catalog/data/api_service.dart';
+import 'api_service.dart' as ChatbotApi;
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -19,7 +20,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
           'nombre': nombre,
           'email': email,
@@ -32,7 +36,10 @@ class AuthService {
 
       if (response.statusCode == 201) {
         await _saveSession(data['token'], data['user']);
-        return AuthResult.success(data['token'], AuthUser.fromJson(data['user']));
+        return AuthResult.success(
+          data['token'],
+          AuthUser.fromJson(data['user']),
+        );
       }
 
       final message = _extractError(data);
@@ -50,7 +57,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({'email': email, 'password': password}),
       );
 
@@ -58,7 +68,10 @@ class AuthService {
 
       if (response.statusCode == 200) {
         await _saveSession(data['token'], data['user']);
-        return AuthResult.success(data['token'], AuthUser.fromJson(data['user']));
+        return AuthResult.success(
+          data['token'],
+          AuthUser.fromJson(data['user']),
+        );
       }
 
       final message = _extractError(data);
@@ -92,8 +105,9 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     await prefs.setString(_userKey, jsonEncode(user));
-    // Propagamos el token al servicio de productos del admin
+    // Propagamos el token al servicio de productos del admin y al chatbot.
     ProductService.authToken = token;
+    ChatbotApi.ApiService.authToken = token;
   }
 
   Future<void> _clearSession() async {
@@ -101,6 +115,7 @@ class AuthService {
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
     ProductService.authToken = null;
+    ChatbotApi.ApiService.authToken = null;
   }
 
   Future<String?> getToken() async {
@@ -120,6 +135,7 @@ class AuthService {
     final token = await getToken();
     if (token == null) return false;
     ProductService.authToken = token;
+    ChatbotApi.ApiService.authToken = token;
     return true;
   }
 
@@ -127,9 +143,7 @@ class AuthService {
   String _extractError(Map<String, dynamic> data) {
     if (data['errors'] != null) {
       final errors = data['errors'] as Map<String, dynamic>;
-      return errors.values
-          .expand((e) => e is List ? e : [e])
-          .join('\n');
+      return errors.values.expand((e) => e is List ? e : [e]).join('\n');
     }
     return data['message'] ?? 'Error desconocido.';
   }
@@ -158,8 +172,8 @@ class AuthUser {
   AuthUser({required this.id, required this.nombre, required this.email});
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-        id: json['id']?.toString() ?? '',
-        nombre: json['nombre']?.toString() ?? '',
-        email: json['email']?.toString() ?? '',
-      );
+    id: json['id']?.toString() ?? '',
+    nombre: json['nombre']?.toString() ?? '',
+    email: json['email']?.toString() ?? '',
+  );
 }

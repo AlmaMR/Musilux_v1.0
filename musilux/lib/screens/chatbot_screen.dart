@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:musilux/theme/colors.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
-import '../services/openai_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -13,7 +12,6 @@ class ChatbotScreen extends StatefulWidget {
 
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController controller = TextEditingController();
-  final OpenAIService service = OpenAIService();
   final ApiService apiService = ApiService();
   final ScrollController scrollController = ScrollController();
 
@@ -54,16 +52,18 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     }
 
     final requestMessages = List<Map<String, String>>.from(chatHistory);
-    if (productSummary.isNotEmpty) {
-      requestMessages.add({
-        "role": "system",
-        "content":
-            "Información actualizada de productos y precios desde el backend:\n$productSummary"
-      });
-    }
+    
+    // Siempre agregar el mensaje del sistema con instrucciones básicas
+    requestMessages.insert(0, {
+      "role": "system",
+      "content": "Eres un asistente virtual de Musilux. Responde en español de forma clara, amable y breve. "
+          "Estamos especializados en vinilos, instrumentos musicales y equipos de iluminación. "
+          "Si el usuario pregunta por algo fuera de esas categorías, responde que no lo ofrecemos y sugiere alternativas dentro de nuestros productos."
+          "${productSummary.isNotEmpty ? '\n\nInformación actualizada de productos y precios desde el backend:\n$productSummary' : ''}"
+    });
 
     try {
-      final reply = await service.sendMessage(requestMessages);
+      final reply = await apiService.sendChatbotMessages(requestMessages);
 
       setState(() {
         messages.add({"role": "bot", "text": reply});
@@ -72,11 +72,19 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
       _scrollToBottom();
     } catch (e) {
-      print("ERROR: $e");
+      print("ERROR en chatbot: $e");
+      String errorMessage = "Error al conectar con el chatbot";
+      
+      if (e.toString().contains('Connection refused')) {
+        errorMessage = "No se puede conectar al servidor. Verifica que el backend esté ejecutándose.";
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = "Tiempo de espera agotado. El servidor podría estar ocupado.";
+      }
+      
       setState(() {
         messages.add({
           "role": "bot",
-          "text": "Error al conectar con el chatbot"
+          "text": errorMessage
         });
       });
 

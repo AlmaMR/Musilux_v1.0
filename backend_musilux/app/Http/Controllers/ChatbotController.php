@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class ChatbotController extends Controller
@@ -11,40 +11,37 @@ class ChatbotController extends Controller
     public function chat(Request $request)
     {
         $validated = $request->validate([
-            'question' => 'required|string|max:1000',
+            'messages' => 'required|array',
+            'messages.*.role' => 'required|string|in:system,user,assistant',
+            'messages.*.content' => 'required|string',
         ]);
 
-        $question = $validated['question'];
+        $messages = $validated['messages'];
 
-        $products = Product::with('category')
-            ->where('esta_activo', true)
-            ->limit(20)
-            ->get(['id', 'id_categoria', 'nombre', 'descripcion', 'precio', 'tipo_producto']);
+        $orderContext = $this->buildOrderContext($request->user()->id);
 
-        $productList = $products->map(function (Product $product) {
-            $category = $product->category ? $product->category->nombre : 'Sin categoría';
-            $descripcion = trim($product->descripcion ?? 'Sin descripción');
-            $price = number_format($product->precio, 2);
+        $systemMessage = [
+            'role' => 'system',
+            'content' => trim(
+                "Eres un asistente virtual de Musilux. Solo debes usar la información de pedidos del usuario autenticado para responder preguntas sobre sus compras. " .
+                "No utilices datos de otros clientes ni inventes pedidos que no estén en esta cuenta." .
+                "musilux es una tienda especializada en la venta de vinilos, canciones y instrumentos musicales.".
+                "si el usuario te pide información sobre sus pedidos, úsala para responder.".
+                "si el usuario pide informacion no relacionada con sus pedidos o de otros productos de la tienda, dile que no tiene acceso a esa información.".
+                "si el usuario pregunta de algun objeto que no esta relacionado a vinilos, instrumentos musicales o canciones, redireccionalo a las compras de la tienda".
+                "A continuación se muestran los pedidos del usuario autenticado:\n\n{$orderContext}"
+            ),
+        ];
 
-            return "- {$product->nombre} ({$category}) - {$product->tipo_producto} - $" . $price
-                . "\n  {$descripcion}";
-        })->implode("\n");
-
-        $systemMessage = "Eres un asistente virtual de Musilux. Responde en español de forma clara, amable y breve. "
-            . "Estamos especializados en vinilos, instrumentos musicales y equipos de iluminación. "
-            . "Si el usuario pregunta por algo fuera de esas categorías, responde que no lo ofrecemos y sugiere alternativas dentro de nuestros productos.";
-
-        $userMessage = "Aquí tienes un resumen de los productos disponibles:\n{$productList}\n\n" 
-            . "Pregunta del usuario:\n\"{$question}\"";
+        $messages = array_merge([$systemMessage], $messages);
 
         $response = Http::withToken(config('services.openai.key'))
+            ->withHeaders(['Accept' => 'application/json'])
+            ->withOptions(['verify' => false])
             ->timeout(30)
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model' => 'gpt-4o-mini',
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemMessage],
-                    ['role' => 'user', 'content' => $userMessage],
-                ],
+                'messages' => $messages,
                 'temperature' => 0.5,
                 'max_tokens' => 400,
             ]);
@@ -67,5 +64,44 @@ class ChatbotController extends Controller
         }
 
         return response()->json(['answer' => trim($answer)]);
+    }
+
+    private function buildOrderContext(string $userId): string
+    {
+        $orders = DB::table('pedidos')
+            ->where('id_usuario', $userId)
+            ->orderByDesc('id')
+            ->get(['id', 'estado', 'subtotal', 'monto_total']);
+
+        if ($orders->isEmpty()) {
+            return 'El usuario no tiene pedidos registrados en su cuenta.';
+        }
+
+        $orderIds = $orders->pluck('id');
+
+        $items = DB::table('detalles_pedido')
+            ->join('productos', 'detalles_pedido.id_producto', '=', 'productos.id')
+            ->whereIn('detalles_pedido.id_pedido', $orderIds)
+            ->get([
+                'detalles_pedido.id_pedido as pedido_id',
+                'productos.nombre as producto',
+                'detalles_pedido.cantidad',
+                'detalles_pedido.precio_unitario',
+                'detalles_pedido.subtotal',
+            ]);
+
+        $itemsByOrder = $items->groupBy('pedido_id');
+
+        $lines = [];
+        foreach ($orders as $order) {
+            $lines[] = "Pedido #{$order->id} — estado: {$order->estado} — subtotal: {$order->subtotal} — total: {$order->monto_total}";
+            $orderItems = $itemsByOrder[$order->id] ?? collect();
+            foreach ($orderItems as $item) {
+                $lines[] = "  - {$item->producto} x{$item->cantidad} @ {$item->precio_unitario} (subtotal {$item->subtotal})";
+            }
+            $lines[] = '';
+        }
+
+        return implode("\n", $lines);
     }
 }

@@ -4,6 +4,7 @@ import '../models/product.dart';
 import '../api_constants.dart';
 
 class ApiService {
+  static String? authToken;
   final String _baseUrl = ApiConstants.baseUrl;
 
   Future<List<Product>> fetchProducts({String? category}) async {
@@ -123,6 +124,39 @@ class ApiService {
     } catch (e) {
       print('Error deleteProduct: $e');
       return false;
+    }
+  }
+
+  // Enviar mensajes al chatbot (POST) - envía el contexto completo desde el frontend
+  Future<String> sendChatbotMessages(List<Map<String, String>> messages) async {
+    final String url = '$_baseUrl/chatbot';
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null) 'Authorization': 'Bearer $authToken',
+      };
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode({'messages': messages}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['answer'] ?? 'Error: Respuesta inválida del servidor';
+      } else {
+        final body = response.body;
+        print('Error en la petición del chatbot: ${response.statusCode}');
+        print('Cuerpo de la respuesta: $body');
+        throw Exception(
+          'Error al enviar mensajes al chatbot (${response.statusCode}): $body',
+        );
+      }
+    } catch (e) {
+      print('Error sendChatbotMessages: $e');
+      throw Exception('No se pudo conectar al servidor del chatbot: $e');
     }
   }
 }
