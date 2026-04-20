@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'package:musilux/models/product.dart';
 import 'package:musilux/services/api_service.dart';
+import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -27,6 +29,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void dispose() {
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  void _agregarAlCarrito(BuildContext context, Product product,
+      {bool abrirCarrito = false}) {
+    final cart = context.read<CartProvider>();
+    final resultado = cart.agregarProducto(
+      productoId:       product.id,
+      nombre:           product.nombre,
+      precio:           product.precio,
+      imagenUrl:        product.imageUrl,
+      stockDisponible:  product.inventario,
+    );
+
+    String mensaje;
+    Color color;
+
+    switch (resultado) {
+      case CartAddResult.exito:
+        mensaje = '${product.nombre} agregado al carrito';
+        color   = AppColors.success;
+        if (abrirCarrito) Scaffold.of(context).openEndDrawer();
+      case CartAddResult.sinStock:
+        mensaje = 'Sin stock disponible';
+        color   = AppColors.error;
+      case CartAddResult.limiteNegocio:
+        mensaje = 'Máximo 10 unidades por producto';
+        color   = AppColors.warning;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(mensaje),
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   @override
@@ -288,30 +325,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             Expanded(
               child: FilledButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Agregado al carrito')),
-                ),
+                onPressed: product.inventario > 0
+                    ? () => _agregarAlCarrito(context, product)
+                    : null,
                 icon: const Icon(Icons.add_shopping_cart, size: 18),
                 label: const Text('Agregar',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primaryPurple,
+                  disabledBackgroundColor: Colors.grey.shade300,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Redirigiendo a pago...')),
-                ),
+                onPressed: product.inventario > 0
+                    ? () => _agregarAlCarrito(context, product, abrirCarrito: true)
+                    : null,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primaryPurple,
                   side: const BorderSide(color: AppColors.primaryPurple),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: const Text('Comprar Ahora',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),

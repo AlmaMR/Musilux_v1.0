@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'theme/colors.dart';
 import 'core/app_router.dart';
 import 'providers/auth_provider.dart';
+import 'providers/cart_provider.dart';
 import 'providers/chat_provider.dart';
 import 'screens/chat_screen.dart';
 
@@ -41,11 +42,15 @@ void main() async {
     await chatProvider.init();
   }
 
+  final cartProvider = CartProvider();
+  await cartProvider.init();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: chatProvider),
+        ChangeNotifierProvider.value(value: cartProvider),
       ],
       child: const MusiluxApp(),
     ),

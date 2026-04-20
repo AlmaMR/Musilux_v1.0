@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import '../providers/cart_provider.dart';
 import '../models/chat_message.dart';
+import '../models/cart_item.dart';
 import '../core/app_router.dart';
 
 // ==========================================
@@ -422,26 +424,515 @@ class CartDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: Colors.grey.shade100,
-      child: Column(
+      backgroundColor: AppColors.background,
+      child: Consumer<CartProvider>(
+        builder: (context, cart, _) {
+          return Column(
+            children: [
+              // ── Cabecera ──────────────────────────────────────────────────
+              _CartHeader(totalUnidades: cart.totalUnidades),
+
+              // ── Alerta de precios modificados ─────────────────────────────
+              if (cart.itemsConPrecioCambiado.isNotEmpty)
+                _PrecioAlertaBanner(items: cart.itemsConPrecioCambiado),
+
+              // ── Lista de items ────────────────────────────────────────────
+              Expanded(
+                child: cart.isEmpty
+                    ? const _CarritoVacio()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        itemCount: cart.items.length,
+                        itemBuilder: (_, i) => _CartItemTile(
+                          item: cart.items[i],
+                          onIncrementar: () => _cambiarCantidad(
+                              context, cart, cart.items[i],
+                              cart.items[i].cantidad + 1),
+                          onDecrementar: () => _cambiarCantidad(
+                              context, cart, cart.items[i],
+                              cart.items[i].cantidad - 1),
+                          onEliminar: () =>
+                              cart.eliminarProducto(cart.items[i].productoId),
+                        ),
+                      ),
+              ),
+
+              // ── Resumen financiero + botón checkout ───────────────────────
+              if (!cart.isEmpty) _CartResumen(cart: cart),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _cambiarCantidad(
+      BuildContext context, CartProvider cart, CartItem item, int nueva) {
+    final resultado = cart.actualizarCantidad(item.productoId, nueva);
+    if (resultado == CartUpdateResult.limiteStock) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Stock máximo disponible: ${item.stockDisponible}'),
+        backgroundColor: AppColors.warning,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } else if (resultado == CartUpdateResult.limiteNegocio) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Máximo 10 unidades por producto.'),
+        backgroundColor: AppColors.warning,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+}
+
+// ── Cabecera del carrito ──────────────────────────────────────────────────────
+class _CartHeader extends StatelessWidget {
+  final int totalUnidades;
+  const _CartHeader({required this.totalUnidades});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 48, 12, 16),
+      decoration: const BoxDecoration(
+        color: AppColors.headerBg,
+      ),
+      child: Row(
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 40, bottom: 20),
+          const Icon(Icons.shopping_cart_outlined,
+              color: Colors.white, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
             child: Text(
-              'Carrito de compras',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              'Mi Carrito${totalUnidades > 0 ? ' ($totalUnidades)' : ''}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Cerrar',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Banner de alerta: precio cambió ──────────────────────────────────────────
+class _PrecioAlertaBanner extends StatelessWidget {
+  final List<CartItem> items;
+  const _PrecioAlertaBanner({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.warning.withValues(alpha: 0.12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline,
+              color: AppColors.warning, size: 18),
+          const SizedBox(width: 8),
           Expanded(
-            child: Center(
-              child: Text(
-                'Carrito vacío',
-                style: TextStyle(color: Colors.grey),
+            child: Text(
+              'El precio de ${items.length == 1 ? items.first.nombre : '${items.length} productos'} '
+              'cambió desde que los agregaste.',
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textPrimary, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Estado vacío ──────────────────────────────────────────────────────────────
+class _CarritoVacio extends StatelessWidget {
+  const _CarritoVacio();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.shopping_cart_outlined,
+              size: 72, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'Tu carrito está vacío',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Explora el catálogo y agrega\nproductos que te gusten',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/');
+            },
+            icon: const Icon(Icons.storefront_outlined, size: 18),
+            label: const Text('Ver catálogo'),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tile de un item ───────────────────────────────────────────────────────────
+class _CartItemTile extends StatelessWidget {
+  final CartItem item;
+  final VoidCallback onIncrementar;
+  final VoidCallback onDecrementar;
+  final VoidCallback onEliminar;
+
+  const _CartItemTile({
+    required this.item,
+    required this.onIncrementar,
+    required this.onDecrementar,
+    required this.onEliminar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            // Imagen miniatura
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: item.imagenUrl.isNotEmpty
+                  ? Image.network(
+                      item.imagenUrl,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context2, e, _) =>
+                          _ImagenPlaceholder(nombre: item.nombre),
+                    )
+                  : _ImagenPlaceholder(nombre: item.nombre),
+            ),
+            const SizedBox(width: 12),
+
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.nombre,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        '\$${item.precioUnitario.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primaryPurple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (item.precioModificado) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.trending_up,
+                            size: 13, color: AppColors.warning),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Subtotal: \$${item.subtotalLinea.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+
+            // Controles de cantidad
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: onEliminar,
+                  icon: const Icon(Icons.delete_outline,
+                      color: AppColors.error, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Eliminar',
+                ),
+                const SizedBox(height: 4),
+                _CantidadControl(
+                  cantidad: item.cantidad,
+                  onIncrementar: item.cantidad < item.stockDisponible
+                      ? onIncrementar
+                      : null,
+                  onDecrementar: onDecrementar,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Control +/– de cantidad ───────────────────────────────────────────────────
+class _CantidadControl extends StatelessWidget {
+  final int cantidad;
+  final VoidCallback? onIncrementar;
+  final VoidCallback onDecrementar;
+
+  const _CantidadControl({
+    required this.cantidad,
+    required this.onIncrementar,
+    required this.onDecrementar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Btn(
+            icon: Icons.remove,
+            onTap: onDecrementar,
+            color: AppColors.textSecondary,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              '$cantidad',
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+          _Btn(
+            icon: Icons.add,
+            onTap: onIncrementar,
+            color: onIncrementar != null
+                ? AppColors.primaryPurple
+                : AppColors.textDisabled,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Btn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
+  const _Btn({required this.icon, required this.onTap, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, size: 16, color: color),
+      ),
+    );
+  }
+}
+
+class _ImagenPlaceholder extends StatelessWidget {
+  final String nombre;
+  const _ImagenPlaceholder({required this.nombre});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 60,
+      height: 60,
+      color: AppColors.primaryLight,
+      child: Center(
+        child: Text(
+          nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
+          style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryPurple),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Resumen financiero + Checkout ─────────────────────────────────────────────
+class _CartResumen extends StatelessWidget {
+  final CartProvider cart;
+  const _CartResumen({required this.cart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Botón vaciar
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Vaciar carrito'),
+                    content: const Text(
+                        '¿Eliminar todos los productos del carrito?'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancelar')),
+                      FilledButton(
+                          style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.error),
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Vaciar')),
+                    ],
+                  ),
+                );
+                if (confirm == true && context.mounted) {
+                  await context.read<CartProvider>().vaciarCarrito();
+                }
+              },
+              icon: const Icon(Icons.delete_sweep_outlined,
+                  size: 16, color: AppColors.error),
+              label: const Text('Vaciar',
+                  style: TextStyle(color: AppColors.error, fontSize: 12)),
+              style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Líneas de cálculo
+          _LineaCalculo(
+              label: 'Subtotal (${cart.totalUnidades} art.)',
+              valor: cart.subtotal),
+          const SizedBox(height: 4),
+          _LineaCalculo(label: 'IVA (16 %)', valor: cart.impuestos),
+          const Divider(height: 20),
+          _LineaCalculo(
+            label: 'Total',
+            valor: cart.total,
+            bold: true,
+            color: AppColors.primaryPurple,
+          ),
+          const SizedBox(height: 16),
+
+          // Botón checkout
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Redirigiendo al checkout...'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: Text(
+                'Pagar  \$${cart.total.toStringAsFixed(2)}',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LineaCalculo extends StatelessWidget {
+  final String label;
+  final double valor;
+  final bool bold;
+  final Color? color;
+
+  const _LineaCalculo({
+    required this.label,
+    required this.valor,
+    this.bold = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontSize: bold ? 15 : 13,
+      fontWeight: bold ? FontWeight.w700 : FontWeight.normal,
+      color: color ?? AppColors.textPrimary,
+    );
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: style),
+        Text('\$${valor.toStringAsFixed(2)}', style: style),
+      ],
     );
   }
 }
