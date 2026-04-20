@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
 import '../core/app_router.dart';
 import '../theme/colors.dart';
 
@@ -53,6 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('esSuperAdmin: ${auth.esSuperAdmin}');
       debugPrint('Permisos: ${auth.usuario?.permisos}');
       debugPrint('═══════════════════════════════════');
+
+      // Restaurar historial de chat de la última sesión del usuario
+      context.read<ChatProvider>().init();
 
       // Redirigir a la pantalla home según el rol del usuario
       final ruta = AppRouter.homeSegunRol(auth.rolActual);

@@ -34,6 +34,7 @@ class AuthProvider extends ChangeNotifier {
   // ── Inicialización ───────────────────────────────────────────────────────
   /// Restaura la sesión guardada al iniciar la app.
   Future<void> init() async {
+    await _service.restoreSession(); // restaura el token en ProductService.authToken
     _usuario = await _service.getUser();
     notifyListeners();
   }

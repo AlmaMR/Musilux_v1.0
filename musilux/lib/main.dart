@@ -31,17 +31,21 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Inicializar el provider y restaurar sesión antes de mostrar la UI
+  // Inicializar providers y restaurar sesión antes de mostrar la UI
   final authProvider = AuthProvider();
   await authProvider.init();
+
+  // Solo restaurar historial de chat si el usuario ya está autenticado
+  final chatProvider = ChatProvider();
+  if (authProvider.estaAutenticado) {
+    await chatProvider.init();
+  }
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
-        // ChatProvider tiene ciclo de vida propio por sesión; se crea aquí
-        // para que persista entre navegaciones.
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider.value(value: chatProvider),
       ],
       child: const MusiluxApp(),
     ),

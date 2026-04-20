@@ -101,7 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
         IconButton(
           icon: const Icon(Icons.add_comment_rounded),
           tooltip: 'Nueva conversación',
-          onPressed: () => context.read<ChatProvider>().nuevaConversacion(),
+          onPressed: () async => context.read<ChatProvider>().nuevaConversacion(),
         ),
       ],
     );

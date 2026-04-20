@@ -11,10 +11,20 @@ use Illuminate\Support\Facades\Log;
 class GeminiService
 {
     /**
-     * Endpoint del modelo Gemini 2.0 Flash (rápido y gratuito en cuota estándar).
-     * Cambiar a gemini-1.5-pro si se necesitan respuestas más elaboradas.
+     * Base URL de la API de Gemini. El modelo se selecciona dinámicamente
+     * con fallback automático si uno agota su cuota.
      */
-    private const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+    private const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+    /**
+     * Modelos en orden de preferencia. Si uno falla (cuota, 404, 503),
+     * se intenta el siguiente automáticamente.
+     */
+    private const MODELS = [
+        'gemini-flash-latest',    // Alias siempre actualizado — primer intento
+        'gemini-2.0-flash',       // Flash más reciente con nombre explícito
+        'gemini-1.5-flash-8b',    // Más ligero, cuota independiente
+    ];
 
     /**
      * Instrucción de sistema base que define la personalidad del bot.
@@ -79,25 +89,46 @@ class GeminiService
             ],
         ];
 
-        // ── Llamada HTTP ────────────────────────────────────────────────────────
-        $response = Http::timeout(30)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post(self::API_URL . '?key=' . $apiKey, $payload);
+        // ── Llamada HTTP con fallback entre modelos ─────────────────────────────
+        $lastError  = null;
+        $lastStatus = null;
 
-        if ($response->failed()) {
-            Log::error('GeminiService: error de API', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
+        foreach (self::MODELS as $model) {
+            $url = self::API_BASE . "/{$model}:generateContent?key={$apiKey}";
+
+            $response = Http::timeout(30)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['candidates'][0]['content']['parts'][0]['text']
+                    ?? 'No pude generar una respuesta. Por favor, intenta de nuevo.';
+            }
+
+            $lastStatus = $response->status();
+            $lastError  = $response->body();
+
+            // Detener inmediatamente en errores de autenticación — ningún modelo ayudará.
+            if (in_array($lastStatus, [400, 401, 403])) {
+                break;
+            }
+
+            // Para cuota agotada (429), modelo no encontrado (404) o servidor caído (500/503),
+            // intentar el siguiente modelo de la lista.
+            Log::warning("GeminiService: modelo {$model} falló ({$lastStatus}), probando siguiente.", [
+                'status' => $lastStatus,
             ]);
-            throw new \RuntimeException(
-                'El servicio de IA no está disponible en este momento. Intente de nuevo en unos segundos.'
-            );
         }
 
-        $data = $response->json();
+        Log::error('GeminiService: todos los modelos fallaron', [
+            'status' => $lastStatus,
+            'body'   => $lastError,
+        ]);
 
-        return $data['candidates'][0]['content']['parts'][0]['text']
-            ?? 'No pude generar una respuesta. Por favor, intenta de nuevo.';
+        throw new \RuntimeException(
+            'El servicio de IA no está disponible en este momento. Intente de nuevo en unos minutos.'
+        );
     }
 
     // ── Contexto dinámico ───────────────────────────────────────────────────────

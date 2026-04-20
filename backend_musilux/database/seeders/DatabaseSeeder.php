@@ -14,7 +14,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolesPermisosSeeder::class,  // roles + permisos + rol_permiso
-            CategorySeeder::class,        // categorias base (Instrumentos, Iluminación, Vinilos)
+            CategorySeeder::class,       // categorias base (Instrumentos, Iluminación, Vinilos)
+            ProductSeeder::class,        // 16 productos de muestra (6 instr. + 5 ilum. + 5 vinilos)
         ]);
     }
 }

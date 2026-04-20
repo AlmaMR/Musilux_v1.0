@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
+import '../models/chat_message.dart';
 import '../core/app_router.dart';
 
 // ==========================================
@@ -14,6 +16,8 @@ class BaseLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const NavDrawer(),
@@ -28,6 +32,10 @@ class BaseLayout extends StatelessWidget {
           ),
         ],
       ),
+      // Burbuja flotante del chatbot — solo visible para usuarios autenticados
+      floatingActionButton: auth.estaAutenticado
+          ? const _ChatFab()
+          : null,
     );
   }
 }
@@ -783,6 +791,641 @@ class ProductSearchDelegate extends SearchDelegate<String> {
           },
         );
       },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT FAB — Burbuja flotante que abre el chat del asistente IA
+// ─────────────────────────────────────────────────────────────────────────────
+class _ChatFab extends StatefulWidget {
+  const _ChatFab();
+
+  @override
+  State<_ChatFab> createState() => _ChatFabState();
+}
+
+class _ChatFabState extends State<_ChatFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  void _abrirChat(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ChatModal(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _pulseAnim,
+      child: FloatingActionButton(
+        onPressed: () => _abrirChat(context),
+        backgroundColor: AppColors.primaryPurple,
+        elevation: 6,
+        tooltip: 'Asistente Musilux',
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 26),
+            // Punto verde "en línea"
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4ADE80),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primaryPurple, width: 1.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT MODAL — Ventana emergente con la interfaz del chatbot
+// ─────────────────────────────────────────────────────────────────────────────
+class _ChatModal extends StatefulWidget {
+  const _ChatModal();
+
+  @override
+  State<_ChatModal> createState() => _ChatModalState();
+}
+
+class _ChatModalState extends State<_ChatModal> {
+  final _inputCtrl   = TextEditingController();
+  final _scrollCtrl  = ScrollController();
+
+  @override
+  void dispose() {
+    _inputCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _scrollAlFinal() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _enviar() async {
+    final texto = _inputCtrl.text.trim();
+    if (texto.isEmpty) return;
+    _inputCtrl.clear();
+    await context.read<ChatProvider>().enviarMensaje(texto);
+    _scrollAlFinal();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      builder: (_, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // ── Handle + Cabecera ────────────────────────────────────────
+              _ChatModalHeader(
+                onNuevoChat: () async => context.read<ChatProvider>().nuevaConversacion(),
+                onCerrar: () => Navigator.pop(context),
+              ),
+
+              // ── Lista de mensajes ────────────────────────────────────────
+              Expanded(
+                child: Consumer<ChatProvider>(
+                  builder: (context, chat, _) {
+                    // Mostrar error como snackbar
+                    if (chat.error != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(chat.error!),
+                              backgroundColor: AppColors.error,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        chat.clearError();
+                      });
+                    }
+
+                    if (chat.cargando) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (chat.mensajes.isEmpty) {
+                      return _ChatBienvenida(
+                        onSugerencia: (texto) async {
+                          await chat.enviarMensaje(texto);
+                          _scrollAlFinal();
+                        },
+                      );
+                    }
+
+                    _scrollAlFinal();
+                    final total = chat.mensajes.length + (chat.enviando ? 1 : 0);
+
+                    return ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      itemCount: total,
+                      itemBuilder: (_, i) {
+                        if (chat.enviando && i == chat.mensajes.length) {
+                          return const _TypingIndicatorInline();
+                        }
+                        return _BurbujaMensaje(mensaje: chat.mensajes[i]);
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              // ── Campo de entrada ─────────────────────────────────────────
+              Padding(
+                padding: EdgeInsets.only(bottom: bottomPadding),
+                child: _ChatInput(
+                  controller: _inputCtrl,
+                  onEnviar: _enviar,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Cabecera del modal ───────────────────────────────────────────────────────
+class _ChatModalHeader extends StatelessWidget {
+  final VoidCallback onNuevoChat;
+  final VoidCallback onCerrar;
+
+  const _ChatModalHeader({
+    required this.onNuevoChat,
+    required this.onCerrar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Handle visual
+        Container(
+          margin: const EdgeInsets.only(top: 10, bottom: 6),
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        // Barra de título
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 6, 8, 12),
+          child: Row(
+            children: [
+              // Avatar del bot
+              Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  gradient: AppColors.heroGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.smart_toy_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Asistente Musilux',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 4,
+                          backgroundColor: Color(0xFF4ADE80),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'En línea',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF4ADE80),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Nuevo chat
+              IconButton(
+                icon: const Icon(Icons.add_comment_rounded),
+                color: AppColors.textSecondary,
+                tooltip: 'Nueva conversación',
+                onPressed: onNuevoChat,
+              ),
+              // Cerrar
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
+                color: AppColors.textSecondary,
+                tooltip: 'Cerrar',
+                onPressed: onCerrar,
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: Colors.grey.shade200),
+      ],
+    );
+  }
+}
+
+// ─── Pantalla de bienvenida con sugerencias ───────────────────────────────────
+class _ChatBienvenida extends StatelessWidget {
+  final Future<void> Function(String) onSugerencia;
+  const _ChatBienvenida({required this.onSugerencia});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            decoration: const BoxDecoration(
+              gradient: AppColors.heroGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 36),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '¡Hola! Soy el asistente de Musilux',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Pregúntame sobre productos musicales,\nel estado de tus pedidos o soporte.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              '¿Qué guitarras tienen?',
+              '¿Cómo va mi pedido?',
+              'Información sobre teclados',
+              'Necesito soporte',
+            ].map((texto) => ActionChip(
+              label: Text(
+                texto,
+                style: const TextStyle(fontSize: 12, color: AppColors.primaryPurple),
+              ),
+              backgroundColor: AppColors.primaryLight,
+              side: const BorderSide(color: AppColors.primaryPurple, width: 0.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              onPressed: () => onSugerencia(texto),
+            )).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Burbuja de mensaje ───────────────────────────────────────────────────────
+class _BurbujaMensaje extends StatelessWidget {
+  final ChatMessage mensaje;
+  const _BurbujaMensaje({required this.mensaje});
+
+  @override
+  Widget build(BuildContext context) {
+    final esUsuario = mensaje.esUsuario;
+    final maxW = MediaQuery.of(context).size.width * 0.72;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment:
+            esUsuario ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!esUsuario) ...[
+            _BotBubbleAvatar(),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxW),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: esUsuario ? AppColors.primaryPurple : AppColors.surface,
+                  borderRadius: BorderRadius.only(
+                    topLeft:     const Radius.circular(18),
+                    topRight:    const Radius.circular(18),
+                    bottomLeft:  Radius.circular(esUsuario ? 18 : 4),
+                    bottomRight: Radius.circular(esUsuario ? 4 : 18),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  mensaje.contenido,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.45,
+                    color: esUsuario ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (esUsuario) ...[
+            const SizedBox(width: 8),
+            _UserBubbleAvatar(),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BotBubbleAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 28,
+        height: 28,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E1B2E), Color(0xFF4F46E5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 15),
+      );
+}
+
+class _UserBubbleAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 28,
+        height: 28,
+        decoration: const BoxDecoration(
+          gradient: AppColors.heroGradient,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.person_rounded, color: Colors.white, size: 15),
+      );
+}
+
+// ─── Indicador "escribiendo..." ───────────────────────────────────────────────
+class _TypingIndicatorInline extends StatefulWidget {
+  const _TypingIndicatorInline();
+
+  @override
+  State<_TypingIndicatorInline> createState() => _TypingIndicatorInlineState();
+}
+
+class _TypingIndicatorInlineState extends State<_TypingIndicatorInline>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _BotBubbleAvatar(),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: const BorderRadius.only(
+                topLeft:     Radius.circular(18),
+                topRight:    Radius.circular(18),
+                bottomRight: Radius.circular(18),
+                bottomLeft:  Radius.circular(4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (i) {
+                return AnimatedBuilder(
+                  animation: _ctrl,
+                  builder: (context2, _) {
+                    final t = (_ctrl.value - i * 0.25).clamp(0.0, 1.0);
+                    final opacity =
+                        (t < 0.5 ? t * 2 : (1.0 - t) * 2).clamp(0.3, 1.0);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Opacity(
+                        opacity: opacity,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryPurple,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Campo de entrada del chat ────────────────────────────────────────────────
+class _ChatInput extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onEnviar;
+
+  const _ChatInput({required this.controller, required this.onEnviar});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ChatProvider>(
+      builder: (context, chat, _) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(14, 10, 10, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                minLines: 1,
+                maxLines: 3,
+                textInputAction: TextInputAction.send,
+                enabled: !chat.enviando,
+                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Escribe tu mensaje...',
+                  hintStyle: const TextStyle(
+                    color: AppColors.textDisabled,
+                    fontSize: 13.5,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (_) => onEnviar(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Material(
+              color: chat.enviando
+                  ? AppColors.textDisabled
+                  : AppColors.primaryPurple,
+              borderRadius: BorderRadius.circular(24),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: chat.enviando ? null : onEnviar,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: chat.enviando
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

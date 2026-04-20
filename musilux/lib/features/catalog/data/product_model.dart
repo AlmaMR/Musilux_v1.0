@@ -1,5 +1,6 @@
 class ProductModel {
   final String? id;
+  final int idCategoria;
   final String nombre;
   final String slug;
   final String? descripcion;
@@ -19,6 +20,7 @@ class ProductModel {
 
   ProductModel({
     this.id,
+    this.idCategoria = 1,
     required this.nombre,
     required this.slug,
     this.descripcion,
@@ -49,6 +51,7 @@ class ProductModel {
 
     return ProductModel(
       id: json['id']?.toString(),
+      idCategoria: int.tryParse(json['id_categoria']?.toString() ?? '1') ?? 1,
       nombre: json['nombre'] ?? '',
       slug: json['slug'] ?? '',
       descripcion: json['descripcion'],
@@ -69,6 +72,7 @@ class ProductModel {
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
+      'id_categoria': idCategoria,
       'nombre': nombre,
       'slug': slug,
       'descripcion': descripcion,

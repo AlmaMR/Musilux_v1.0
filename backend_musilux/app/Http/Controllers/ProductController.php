@@ -45,7 +45,7 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'id_categoria' => 'nullable|exists:categorias,id',
+            'id_categoria' => 'nullable|integer|exists:categorias,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_producto' => [
@@ -71,6 +71,11 @@ class ProductController extends Controller
 
         // Generar Slug automáticamente
         $data['slug'] = Str::slug($data['nombre']) . '-' . uniqid();
+
+        // id_categoria es obligatoria en BD — usar categoría 1 (General) como fallback
+        if (empty($data['id_categoria'])) {
+            $data['id_categoria'] = 1;
+        }
 
         // Asignar valor por defecto si es digital
         if (($data['tipo_producto'] ?? '') === 'digital') {

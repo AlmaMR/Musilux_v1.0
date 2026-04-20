@@ -436,6 +436,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   final TextEditingController _spotifySearchCtrl = TextEditingController();
 
   String _tipoProducto = 'fisico';
+  int _idCategoria = 1;
   bool _estaActivo = true;
 
   SpotifyTrack? _selectedTrack;
@@ -462,6 +463,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _invCtrl    = TextEditingController(text: p?.inventario.toString() ?? '');
     _bpmCtrl    = TextEditingController(text: p?.bpm?.toString() ?? '');
     _tipoProducto = p?.tipoProducto ?? 'fisico';
+    _idCategoria  = p?.idCategoria ?? 1;
     _estaActivo   = p?.estaActivo ?? true;
     _existingImageUrl = p?.imagenUrl;
 
@@ -557,6 +559,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
 
     final product = ProductModel(
       id: widget.product?.id,
+      idCategoria: _idCategoria,
       nombre: _nombreCtrl.text.trim(),
       slug: _slugCtrl.text.trim(),
       descripcion: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
@@ -667,6 +670,29 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                         label: 'Slug (URL)',
                         icon: Icons.link,
                         helperText: 'Generado automáticamente por el servidor',
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Categoría
+                      DropdownButtonFormField<int>(
+                        value: _idCategoria,
+                        decoration: InputDecoration(
+                          labelText: 'Categoría',
+                          prefixIcon: const Icon(Icons.folder_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 1, child: Text('Instrumentos')),
+                          DropdownMenuItem(value: 2, child: Text('Iluminación')),
+                          DropdownMenuItem(value: 3, child: Text('Vinilos')),
+                        ],
+                        onChanged: (v) => setState(() => _idCategoria = v!),
                       ),
                       const SizedBox(height: 12),
 
