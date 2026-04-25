@@ -28,6 +28,10 @@ class User extends Authenticatable
         'correo',
         'contrasena_hash',
         'esta_activo',
+        'direccion',
+        'departamento',
+        'municipio',
+        'codigo_postal',
     ];
 
     protected $hidden = [
