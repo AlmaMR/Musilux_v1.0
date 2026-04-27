@@ -283,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             child: const Text(
-              'modificar informacion personal',
+              'Cambiar contraseña',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
