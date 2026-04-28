@@ -44,6 +44,12 @@ class ProductDetailResource extends JsonResource
                     ];
                 });
             }),
+            'etiquetas' => $this->whenLoaded('tags', function () {
+                return $this->tags->map(fn($tag) => [
+                    'id'     => $tag->id,
+                    'nombre' => $tag->nombre,
+                ]);
+            }),
         ];
     }
 

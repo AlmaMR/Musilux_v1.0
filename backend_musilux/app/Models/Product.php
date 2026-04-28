@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
@@ -53,5 +54,10 @@ class Product extends Model
     {
         // Apuntamos al nuevo modelo que representa la tabla multimedia_producto
         return $this->hasMany(ProductMedia::class, 'id_producto');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'producto_etiqueta', 'id_producto', 'id_etiqueta');
     }
 }

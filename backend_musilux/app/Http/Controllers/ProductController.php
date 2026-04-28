@@ -12,9 +12,6 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = Product::with(['multimedia']);
@@ -25,68 +22,87 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->get();
-
-        return ProductListResource::collection($products);
+        return ProductListResource::collection($query->get());
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $product = Product::with(['multimedia', 'category'])->findOrFail($id);
+        $product = Product::with(['multimedia', 'category', 'tags'])->findOrFail($id);
         return new ProductDetailResource($product);
     }
 
     /**
-     * Store a newly created resource in storage (POST).
+     * Returns up to 4 products related to $id, ranked by:
+     *   +3 same category, +2 per shared tag, +1 similar price (±30%).
      */
+    public function related(string $id)
+    {
+        $product = Product::with(['tags'])->findOrFail($id);
+
+        $tagIds   = $product->tags->pluck('id')->toArray();
+        $priceMin = $product->precio * 0.70;
+        $priceMax = $product->precio * 1.30;
+
+        $ranked = Product::with(['multimedia', 'tags'])
+            ->where('id', '!=', $id)
+            ->where('esta_activo', true)
+            ->get()
+            ->map(function ($c) use ($product, $tagIds, $priceMin, $priceMax) {
+                $score = 0;
+                if ($c->id_categoria === $product->id_categoria) $score += 3;
+                $score += $c->tags->whereIn('id', $tagIds)->count() * 2;
+                if ($c->precio >= $priceMin && $c->precio <= $priceMax) $score += 1;
+                return ['model' => $c, 'score' => $score];
+            })
+            ->filter(fn($item) => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->take(4)
+            ->pluck('model')
+            ->values();
+
+        return ProductListResource::collection($ranked);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
-            'id_categoria' => 'nullable|integer|exists:categorias,id',
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'tipo_producto' => [
-                'required',
-                'string',
-                // Asegura que el valor enviado desde Flutter exista en la base de datos
-                Rule::in(['fisico', 'digital', 'servicio']),
-            ],
-            'precio' => 'required|numeric|min:0',
-            'inventario' => 'required|integer|min:0',
-            'bpm' => 'nullable|integer',
-            'esta_activo' => 'boolean',
-            // Campos de Spotify (opcionales, solo para vinilos/digitales)
-            'spotify_track_id' => 'nullable|string|max:255',
-            'spotify_track_name' => 'nullable|string|max:255',
-            'spotify_artist_name' => 'nullable|string|max:255',
-            'spotify_preview_url' => 'nullable|string|max:500',
+            'id_categoria'         => 'nullable|integer|exists:categorias,id',
+            'nombre'               => 'required|string|max:255',
+            'descripcion'          => 'nullable|string',
+            'tipo_producto'        => ['required', 'string', Rule::in(['fisico', 'digital', 'servicio'])],
+            'precio'               => 'required|numeric|min:0',
+            'inventario'           => 'required|integer|min:0',
+            'bpm'                  => 'nullable|integer',
+            'esta_activo'          => 'boolean',
+            'spotify_track_id'     => 'nullable|string|max:255',
+            'spotify_track_name'   => 'nullable|string|max:255',
+            'spotify_artist_name'  => 'nullable|string|max:255',
+            'spotify_preview_url'  => 'nullable|string|max:500',
             'spotify_album_image_url' => 'nullable|string|max:500',
-            // Usamos 'string' en lugar de 'url' porque FILTER_VALIDATE_URL de PHP
-            // puede rechazar URLs de Firebase Storage que contienen %2F en el path.
-            'imagen_url' => 'nullable|string|max:2048',
+            // Imagen principal (retrocompatibilidad)
+            'imagen_url'           => 'nullable|string|max:2048',
+            // Soporte para múltiples imágenes adicionales
+            'imagenes_urls'        => 'nullable|array|max:8',
+            'imagenes_urls.*'      => 'string|max:2048',
         ]);
 
-        // Generar Slug automáticamente
         $data['slug'] = Str::slug($data['nombre']) . '-' . uniqid();
 
-        // id_categoria es obligatoria en BD — usar categoría 1 (General) como fallback
         if (empty($data['id_categoria'])) {
             $data['id_categoria'] = 1;
         }
 
-        // Asignar valor por defecto si es digital
         if (($data['tipo_producto'] ?? '') === 'digital') {
             $data['inventario'] = 0;
         }
 
-        $imagenUrl = $data['imagen_url'] ?? null;
-        unset($data['imagen_url']);
+        $imagenUrl    = $data['imagen_url'] ?? null;
+        $imagenesUrls = $data['imagenes_urls'] ?? [];
+        unset($data['imagen_url'], $data['imagenes_urls']);
 
         $product = Product::create($data);
 
+        // Imagen principal
         if ($imagenUrl) {
             ProductMedia::create([
                 'id_producto'     => $product->id,
@@ -96,52 +112,57 @@ class ProductController extends Controller
             ]);
         }
 
-        return (new ProductDetailResource($product->load(['multimedia', 'category'])))
+        // Imágenes adicionales (ninguna es principal)
+        foreach ($imagenesUrls as $url) {
+            if ($url && $url !== $imagenUrl) {
+                ProductMedia::create([
+                    'id_producto'     => $product->id,
+                    'tipo_multimedia' => 'imagen',
+                    'url_archivo'     => $url,
+                    'es_principal'    => false,
+                ]);
+            }
+        }
+
+        return (new ProductDetailResource($product->load(['multimedia', 'category', 'tags'])))
             ->response()
             ->setStatusCode(201);
     }
 
-    /**
-     * Update the specified resource in storage (PUT/PATCH).
-     */
     public function update(Request $request, string $id)
     {
         $product = Product::findOrFail($id);
-        
+
         $data = $request->validate([
-            'id_categoria' => 'nullable|exists:categorias,id',
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'tipo_producto' => [
-                'required',
-                'string',
-                // Asegura que el valor enviado desde Flutter exista en la base de datos
-                Rule::in(['fisico', 'digital', 'servicio']),
-            ],
-            'precio' => 'required|numeric|min:0',
-            'inventario' => 'required|integer|min:0',
-            'bpm' => 'nullable|integer',
-            'esta_activo' => 'boolean',
-            // Campos de Spotify (opcionales)
-            'spotify_track_id' => 'nullable|string|max:255',
-            'spotify_track_name' => 'nullable|string|max:255',
-            'spotify_artist_name' => 'nullable|string|max:255',
-            'spotify_preview_url' => 'nullable|string|max:500',
+            'id_categoria'         => 'nullable|exists:categorias,id',
+            'nombre'               => 'required|string|max:255',
+            'descripcion'          => 'nullable|string',
+            'tipo_producto'        => ['required', 'string', Rule::in(['fisico', 'digital', 'servicio'])],
+            'precio'               => 'required|numeric|min:0',
+            'inventario'           => 'required|integer|min:0',
+            'bpm'                  => 'nullable|integer',
+            'esta_activo'          => 'boolean',
+            'spotify_track_id'     => 'nullable|string|max:255',
+            'spotify_track_name'   => 'nullable|string|max:255',
+            'spotify_artist_name'  => 'nullable|string|max:255',
+            'spotify_preview_url'  => 'nullable|string|max:500',
             'spotify_album_image_url' => 'nullable|string|max:500',
-            'imagen_url' => 'nullable|string|max:2048',
+            'imagen_url'           => 'nullable|string|max:2048',
+            'imagenes_urls'        => 'nullable|array|max:8',
+            'imagenes_urls.*'      => 'string|max:2048',
         ]);
 
         if (isset($data['nombre'])) {
             $data['slug'] = Str::slug($data['nombre']) . '-' . uniqid();
         }
 
-        $imagenUrl = $data['imagen_url'] ?? null;
-        unset($data['imagen_url']);
+        $imagenUrl    = $data['imagen_url'] ?? null;
+        $imagenesUrls = $data['imagenes_urls'] ?? [];
+        unset($data['imagen_url'], $data['imagenes_urls']);
 
         $product->update($data);
 
         if ($imagenUrl) {
-            // Reemplaza la imagen principal anterior
             $product->multimedia()->where('es_principal', true)->delete();
             ProductMedia::create([
                 'id_producto'     => $product->id,
@@ -151,17 +172,29 @@ class ProductController extends Controller
             ]);
         }
 
-        return new ProductDetailResource($product->fresh()->load(['multimedia', 'category']));
+        // Añade imágenes adicionales sin borrar las existentes no-principales
+        foreach ($imagenesUrls as $url) {
+            if ($url && $url !== $imagenUrl) {
+                $exists = $product->multimedia()
+                    ->where('url_archivo', $url)
+                    ->exists();
+                if (!$exists) {
+                    ProductMedia::create([
+                        'id_producto'     => $product->id,
+                        'tipo_multimedia' => 'imagen',
+                        'url_archivo'     => $url,
+                        'es_principal'    => false,
+                    ]);
+                }
+            }
+        }
+
+        return new ProductDetailResource($product->fresh()->load(['multimedia', 'category', 'tags']));
     }
 
-    /**
-     * Remove the specified resource from storage (DELETE).
-     */
     public function destroy(string $id)
     {
-        $product = Product::findOrFail($id);
-        $product->delete();
-
+        Product::findOrFail($id)->delete();
         return response()->json(null, 204);
     }
 }

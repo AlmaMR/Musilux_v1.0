@@ -40,8 +40,9 @@ Route::prefix('auth')->group(function () {
 // ──────────────────────────────────────────────
 // Productos — lectura pública
 // ──────────────────────────────────────────────
-Route::get('/products',      [ProductController::class, 'index']);
-Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::get('/products',               [ProductController::class, 'index']);
+Route::get('/products/{id}',          [ProductController::class, 'show']);
+Route::get('/products/{id}/related',  [ProductController::class, 'related']);
 
 // ──────────────────────────────────────────────
 // Spotify (público — backend actúa de proxy)

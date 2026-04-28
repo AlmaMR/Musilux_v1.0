@@ -114,6 +114,20 @@ class ApiService {
     }
   }
 
+  Future<List<Product>> fetchRelatedProducts(String productId) async {
+    final url = '$_baseUrl/products/$productId/related';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body)['data'];
+        return data.map((item) => Product.fromJson(item)).toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   // Eliminar producto (DELETE)
   Future<bool> deleteProduct(String id) async {
     final String url = '$_baseUrl/products/$id';

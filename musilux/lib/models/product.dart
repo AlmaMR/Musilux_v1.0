@@ -37,6 +37,20 @@ class ProductCategory {
   }
 }
 
+class ProductTag {
+  final String id;
+  final String nombre;
+
+  ProductTag({required this.id, required this.nombre});
+
+  factory ProductTag.fromJson(Map<String, dynamic> json) {
+    return ProductTag(
+      id: json['id']?.toString() ?? '',
+      nombre: json['nombre']?.toString() ?? '',
+    );
+  }
+}
+
 class Product {
   final String id;
   final String nombre;
@@ -50,6 +64,7 @@ class Product {
   final int? bpm;
   final List<ProductMedia> multimedia;
   final ProductCategory? categoria;
+  final List<ProductTag> etiquetas;
   final String? spotifyTrackId;
   final String? spotifyTrackName;
   final String? spotifyArtistName;
@@ -69,6 +84,7 @@ class Product {
     this.bpm,
     this.multimedia = const [],
     this.categoria,
+    this.etiquetas = const [],
     this.spotifyTrackId,
     this.spotifyTrackName,
     this.spotifyArtistName,
@@ -76,13 +92,17 @@ class Product {
     this.spotifyAlbumImageUrl,
   });
 
-  // Getter para obtener la imagen principal de forma segura. Retorna un placeholder si no hay.
+  // Retorna la URL de la imagen principal o un placeholder si no hay multimedia.
   String get imageUrl {
-    if (multimedia.isEmpty)
+    if (multimedia.isEmpty) {
       return 'https://placehold.co/300x300/png?text=Sin+Imagen';
+    }
     final mainMedia = multimedia.firstWhere(
-      (m) => m.esPrincipal,
-      orElse: () => multimedia.first,
+      (m) => m.esPrincipal && m.tipoMultimedia == 'imagen',
+      orElse: () => multimedia.firstWhere(
+        (m) => m.tipoMultimedia == 'imagen',
+        orElse: () => multimedia.first,
+      ),
     );
     return mainMedia.urlArchivo;
   }
@@ -101,12 +121,18 @@ class Product {
       bpm: json['bpm'] != null ? int.tryParse(json['bpm'].toString()) : null,
       multimedia: json['multimedia'] != null
           ? (json['multimedia'] as List)
-                .map((i) => ProductMedia.fromJson(i))
-                .toList()
+              .map((i) => ProductMedia.fromJson(i))
+              .toList()
           : [],
-      categoria: json['category'] != null
-          ? ProductCategory.fromJson(json['category'])
+      // FIX: la API devuelve la clave 'categoria', no 'category'
+      categoria: json['categoria'] != null
+          ? ProductCategory.fromJson(json['categoria'])
           : null,
+      etiquetas: json['etiquetas'] != null
+          ? (json['etiquetas'] as List)
+              .map((i) => ProductTag.fromJson(i))
+              .toList()
+          : [],
       spotifyTrackId: json['spotify_track_id']?.toString(),
       spotifyTrackName: json['spotify_track_name']?.toString(),
       spotifyArtistName: json['spotify_artist_name']?.toString(),
