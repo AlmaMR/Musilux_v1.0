@@ -28,7 +28,10 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
   }
 
   Future<void> _cargarUsuarios() async {
-    setState(() { _cargando = true; _error = null; });
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
 
     final token = await AuthService().getToken();
 
@@ -70,7 +73,10 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Suspender', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Suspender',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -82,24 +88,21 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
 
     final response = await http.delete(
       Uri.parse('${ApiConstants.baseUrl}/admin/usuarios/$id'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
     );
 
     if (!mounted) return;
 
     if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cuenta suspendida.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cuenta suspendida.')));
       _cargarUsuarios();
     } else {
       final msg = jsonDecode(response.body)['message'] ?? 'Error al suspender.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
     }
   }
 
@@ -123,9 +126,9 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
             onPressed: () async {
               await context.read<AuthProvider>().logout();
               if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  AppRoutes.login, (_) => false,
-                );
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
               }
             },
           ),
@@ -145,7 +148,10 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
           children: [
             Text(_error!, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _cargarUsuarios, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _cargarUsuarios,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       );
@@ -153,7 +159,10 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
 
     if (_usuarios.isEmpty) {
       return const Center(
-        child: Text('No hay usuarios registrados.', style: TextStyle(color: Colors.grey)),
+        child: Text(
+          'No hay usuarios registrados.',
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
 
@@ -169,7 +178,9 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
             margin: const EdgeInsets.only(bottom: 10),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: activo ? Colors.teal.shade100 : Colors.grey.shade200,
+                backgroundColor: activo
+                    ? Colors.teal.shade100
+                    : Colors.grey.shade200,
                 child: Icon(
                   Icons.person,
                   color: activo ? Colors.teal : Colors.grey,
@@ -181,7 +192,7 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
                 children: [
                   Text(u['correo'] ?? ''),
                   Text(
-                    u['rol'] ?? 'sin rol',
+                    (u['rol'] is Map ? u['rol']['nombre'] : u['rol']) ?? 'sin rol',
                     style: TextStyle(
                       color: AppColors.primaryPurple,
                       fontSize: 12,
@@ -201,9 +212,9 @@ class _UsuariosDashboardState extends State<UsuariosDashboard> {
                   tooltip: activo ? 'Suspender' : 'Reactivar (manual en BD)',
                   onPressed: activo
                       ? () => _suspenderUsuario(
-                            u['id'].toString(),
-                            '${u['nombres']} ${u['apellidos']}',
-                          )
+                          u['id'].toString(),
+                          '${u['nombres']} ${u['apellidos']}',
+                        )
                       : null,
                 ),
               ),
