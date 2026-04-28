@@ -27,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+  int? _misPedidosCount;
 
   // Controllers
   final _nombresController = TextEditingController();
@@ -46,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _checkSession();
+    _loadMyOrdersCount();
   }
 
   Future<void> _checkSession() async {
@@ -55,6 +57,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isAuthenticated = true;
         _currentUser = user;
       });
+      // Cargar conteo cuando ya tenemos usuario restaurado
+      _loadMyOrdersCount();
+    }
+  }
+
+  Future<void> _loadMyOrdersCount() async {
+    // Intentamos obtener token y llamar al endpoint protegido
+    try {
+      final token = await _authService.getToken();
+      if (token == null) return;
+
+      final resp = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/pedidos/mis/count'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body);
+        if (mounted)
+          setState(() => _misPedidosCount = (body['count'] as int?) ?? 0);
+      } else if (resp.statusCode == 401) {
+        // no autenticado; dejar en null
+        if (mounted) setState(() => _misPedidosCount = 0);
+      }
+    } catch (_) {
+      // Silencioso: no bloquear la UI
     }
   }
 
@@ -68,16 +99,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (response.statusCode == 200) {
         final raw = jsonDecode(response.body);
-        final list = (raw is List
-            ? raw
-            : (raw['data'] ?? raw['roles'] ?? [])) as List;
+        final list =
+            (raw is List ? raw : (raw['data'] ?? raw['roles'] ?? [])) as List;
         final loaded = list
-            .map((r) => _RoleOption(
-                  id: r['id'] as int,
-                  nombre: r['nombre']?.toString() ??
-                      r['name']?.toString() ??
-                      '',
-                ))
+            .map(
+              (r) => _RoleOption(
+                id: r['id'] as int,
+                nombre: r['nombre']?.toString() ?? r['name']?.toString() ?? '',
+              ),
+            )
             .toList();
         if (mounted) {
           setState(() {
@@ -127,6 +157,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isAuthenticated = true;
         _currentUser = result.user;
       });
+      // Cargar conteo inmediatamente después de iniciar sesión
+      _loadMyOrdersCount();
     } else {
       setState(() => _errorMessage = result.error);
     }
@@ -157,6 +189,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isAuthenticated = true;
         _currentUser = result.user;
       });
+      // Cargar conteo al registrarse e iniciar sesión
+      _loadMyOrdersCount();
     } else {
       setState(() => _errorMessage = result.error);
     }
@@ -174,6 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _passwordController.clear();
       _nombresController.clear();
       _apellidosController.clear();
+      _misPedidosCount = null;
     });
   }
 
@@ -193,28 +228,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
         child: Center(
           child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 450),
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+            constraints: const BoxConstraints(maxWidth: 450),
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: _isAuthenticated
+                  ? _buildProfileInfo()
+                  : (_isLoginView ? _buildLoginForm() : _buildRegisterForm()),
             ),
-            child: _isAuthenticated
-                ? _buildProfileInfo()
-                : (_isLoginView ? _buildLoginForm() : _buildRegisterForm()),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   // ==========================================
@@ -249,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           Chip(
             label: Text(user!.rol!),
-            backgroundColor: AppColors.primaryPurple.withValues(alpha:0.1),
+            backgroundColor: AppColors.primaryPurple.withValues(alpha: 0.1),
             labelStyle: const TextStyle(color: AppColors.primaryPurple),
           ),
         ],
@@ -260,7 +295,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _buildInfoRow(
           Icons.shopping_bag_outlined,
           'Mis pedidos',
-          '0 pedidos realizados',
+          _misPedidosCount == null
+              ? 'Cargando...'
+              : '${_misPedidosCount!} pedidos realizados',
         ),
         const SizedBox(height: 40),
         SizedBox(
@@ -354,17 +391,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide:
-                        const BorderSide(color: AppColors.primaryPurple),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryPurple,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 hint: const Text('Selecciona un rol'),
                 items: _roles
-                    .map((r) => DropdownMenuItem(
-                          value: r.id,
-                          child: Text(r.nombre),
-                        ))
+                    .map(
+                      (r) =>
+                          DropdownMenuItem(value: r.id, child: Text(r.nombre)),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _selectedRolId = v),
               ),

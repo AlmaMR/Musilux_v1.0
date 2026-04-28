@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:musilux/models/product.dart';
 import 'package:musilux/services/api_service.dart';
 import '../widgets/shared_components.dart';
+import 'package:provider/provider.dart';
+import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -62,10 +64,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: double.infinity,
           height: isMobile ? 260 : 420,
           child: CachedNetworkImage(
-            imageUrl: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1200&q=80',
+            imageUrl:
+                'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1200&q=80',
             fit: BoxFit.cover,
             placeholder: (ctx, url) => Container(color: AppColors.headerBg),
-            errorWidget: (ctx, url, err) => Container(color: AppColors.headerBg),
+            errorWidget: (ctx, url, err) =>
+                Container(color: AppColors.headerBg),
           ),
         ),
         Container(
@@ -87,11 +91,16 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryPurple.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.primaryPurple.withValues(alpha: 0.6)),
+                    border: Border.all(
+                      color: AppColors.primaryPurple.withValues(alpha: 0.6),
+                    ),
                   ),
                   child: const Text(
                     'NUEVA COLECCIÓN 2025',
@@ -125,27 +134,45 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     FilledButton(
-                      onPressed: () => Navigator.pushNamed(context, '/instrumentos'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/instrumentos'),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primaryPurple,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text(
                         'Comprar Ahora',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     OutlinedButton(
-                      onPressed: () => Navigator.pushNamed(context, '/contacto'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/contacto'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white54),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: const Text('Contáctanos', style: TextStyle(fontSize: 15)),
+                      child: const Text(
+                        'Contáctanos',
+                        style: TextStyle(fontSize: 15),
+                      ),
                     ),
                   ],
                 ),
@@ -175,8 +202,15 @@ class _HomeScreenState extends State<HomeScreen> {
           if (route != null)
             TextButton.icon(
               onPressed: () => Navigator.pushNamed(context, route),
-              icon: const Text('Ver todos', style: TextStyle(color: AppColors.primaryPurple, fontSize: 13)),
-              label: const Icon(Icons.arrow_forward, size: 16, color: AppColors.primaryPurple),
+              icon: const Text(
+                'Ver todos',
+                style: TextStyle(color: AppColors.primaryPurple, fontSize: 13),
+              ),
+              label: const Icon(
+                Icons.arrow_forward,
+                size: 16,
+                color: AppColors.primaryPurple,
+              ),
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
             ),
         ],
@@ -190,19 +224,22 @@ class _HomeScreenState extends State<HomeScreen> {
       {
         'title': 'Instrumentos',
         'subtitle': 'Guitarras, Bajos, Baterías',
-        'image': 'https://ortizo.com.co/cdn/shop/articles/INSTRUMENTOS.jpg?v=1736287757&width=1920',
+        'image':
+            'https://ortizo.com.co/cdn/shop/articles/INSTRUMENTOS.jpg?v=1736287757&width=1920',
         'route': '/instrumentos',
       },
       {
         'title': 'Iluminación',
         'subtitle': 'Soluciones para cada ambiente',
-        'image': 'https://images.unsplash.com/photo-1533923156502-be31530547c4?w=600&q=80',
+        'image':
+            'https://images.unsplash.com/photo-1533923156502-be31530547c4?w=600&q=80',
         'route': '/iluminacion',
       },
       {
         'title': 'Vinilos',
         'subtitle': 'Tus artistas favoritos',
-        'image': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJVPVcvu-yGVS4NFvor8Dmz97wDYj3ZETMsA&s',
+        'image':
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJVPVcvu-yGVS4NFvor8Dmz97wDYj3ZETMsA&s',
         'route': '/vinilos',
       },
     ];
@@ -243,14 +280,23 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_off, size: 40, color: AppColors.textDisabled),
+                  const Icon(
+                    Icons.cloud_off,
+                    size: 40,
+                    color: AppColors.textDisabled,
+                  ),
                   const SizedBox(height: 8),
-                  Text('No se pudieron cargar los productos', style: TextStyle(color: AppColors.textSecondary)),
+                  Text(
+                    'No se pudieron cargar los productos',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
                 ],
               ),
             );
           }
-          final products = (snapshot.data ?? []).where((p) => p.estaActivo).toList();
+          final products = (snapshot.data ?? [])
+              .where((p) => p.estaActivo)
+              .toList();
           if (products.isEmpty) {
             return const Center(child: Text('No hay ofertas disponibles.'));
           }
@@ -273,6 +319,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     '/detalle-producto/${product.id}',
                   ),
+                  onAdd: () {
+                    // Añadir al carrito desde tarjeta (cantidad 1)
+                    context.read<CartProvider>().agregarProducto(
+                      productoId: product.id,
+                      nombre: product.nombre,
+                      precio: product.precio,
+                      imagenUrl: product.imageUrl,
+                      stockDisponible: product.inventario,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Agregado al carrito')),
+                    );
+                  },
                 ),
               );
             },

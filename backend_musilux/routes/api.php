@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\CuponController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\RolAdminController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\PaymentController;
 
 // ──────────────────────────────────────────────
 // Roles (público — necesario antes del registro)
@@ -136,7 +137,17 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/roles/{id}/permisos',    [RolAdminController::class, 'asignarPermisos']);
             });
     });
+
+    // Checkout / Pagos (Stripe)
+    Route::post('/checkout/create-payment-intent', [PaymentController::class, 'createPaymentIntent']);
+    Route::post('/checkout/create-checkout-session', [PaymentController::class, 'createCheckoutSession']);
+    Route::get('/checkout/session/{id}', [PaymentController::class, 'getCheckoutSession']);
+    // Mis pedidos (conteo para el perfil)
+    Route::get('/pedidos/mis/count', [PaymentController::class, 'myOrdersCount']);
 });
+
+// Stripe webhook (public)
+Route::post('/stripe/webhook', [PaymentController::class, 'webhook']);
 
 // ──────────────────────────────────────────────
 // Debug (solo desarrollo — eliminar en producción)

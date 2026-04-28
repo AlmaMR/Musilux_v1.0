@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import 'package:provider/provider.dart';
 import '../widgets/shared_components.dart';
+import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 
 class VinylsScreen extends StatefulWidget {
@@ -121,9 +123,11 @@ class _VinylsScreenState extends State<VinylsScreen> {
                 // Filtro por género (busca en nombre del producto)
                 if (_selectedCategory != 'Todos') {
                   products = products
-                      .where((p) => p.nombre
-                          .toLowerCase()
-                          .contains(_selectedCategory.toLowerCase()))
+                      .where(
+                        (p) => p.nombre.toLowerCase().contains(
+                          _selectedCategory.toLowerCase(),
+                        ),
+                      )
                       .toList();
                 }
 
@@ -141,13 +145,20 @@ class _VinylsScreenState extends State<VinylsScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.album_outlined, size: 56, color: Colors.grey.shade300),
+                          Icon(
+                            Icons.album_outlined,
+                            size: 56,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             _selectedCategory == 'Todos'
                                 ? 'No hay discos disponibles.'
                                 : 'No hay discos de "$_selectedCategory".',
-                            style: const TextStyle(fontSize: 16, color: Colors.black54),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black54,
+                            ),
                           ),
                         ],
                       ),
@@ -179,6 +190,18 @@ class _VinylsScreenState extends State<VinylsScreen> {
                         context,
                         '/detalle-producto/${item.id}',
                       ),
+                      onAdd: () {
+                        context.read<CartProvider>().agregarProducto(
+                          productoId: item.id,
+                          nombre: item.nombre,
+                          precio: item.precio,
+                          imagenUrl: item.imageUrl,
+                          stockDisponible: item.inventario,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Agregado al carrito')),
+                        );
+                      },
                     );
                   },
                 );

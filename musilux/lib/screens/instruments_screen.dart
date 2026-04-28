@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/shared_components.dart';
+import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 // ignore_for_file: curly_braces_in_flow_control_structures
 
@@ -99,7 +101,10 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
             const SizedBox(height: 16),
             Text(
               '${filteredProducts.length} producto${filteredProducts.length == 1 ? '' : 's'} encontrado${filteredProducts.length == 1 ? '' : 's'}',
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -110,11 +115,18 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.search_off_rounded, size: 56, color: Colors.grey.shade300),
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 56,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(height: 12),
                           const Text(
                             'No hay productos en esta categoría',
-                            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -140,6 +152,21 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                         isSale: item['isSale'],
                         onDetailsTap: () =>
                             Navigator.pushNamed(context, '/detalle'),
+                        onAdd: () {
+                          // For demo data we don't have IDs; use title as id
+                          context.read<CartProvider>().agregarProducto(
+                            productoId: item['title'],
+                            nombre: item['title'],
+                            precio: item['price'],
+                            imagenUrl: item['image'],
+                            stockDisponible: 100,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Agregado al carrito'),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

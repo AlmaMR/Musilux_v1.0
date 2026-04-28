@@ -27,8 +27,7 @@ class CartProvider extends ChangeNotifier {
 
   bool get isEmpty => _items.isEmpty;
 
-  int get totalUnidades =>
-      _items.fold(0, (sum, item) => sum + item.cantidad);
+  int get totalUnidades => _items.fold(0, (sum, item) => sum + item.cantidad);
 
   /// Productos cuyo precio cambió desde que se agregaron al carrito.
   List<CartItem> get itemsConPrecioCambiado =>
@@ -91,22 +90,29 @@ class CartProvider extends ChangeNotifier {
 
       existente.cantidad = nuevaCantidad;
     } else {
-      if (cantidad > stockDisponible) return CartAddResult.limiteStock(stockDisponible);
+      if (cantidad > stockDisponible)
+        return CartAddResult.limiteStock(stockDisponible);
       if (cantidad > _kMaxPorProducto) return CartAddResult.limiteNegocio;
 
-      _items.add(CartItem(
-        productoId:      productoId,
-        nombre:          nombre,
-        precioUnitario:  precio,
-        precioAlAgregar: precio,
-        imagenUrl:       imagenUrl,
-        stockDisponible: stockDisponible,
-        cantidad:        cantidad,
-      ));
+      _items.add(
+        CartItem(
+          productoId: productoId,
+          nombre: nombre,
+          precioUnitario: precio,
+          precioAlAgregar: precio,
+          imagenUrl: imagenUrl,
+          stockDisponible: stockDisponible,
+          cantidad: cantidad,
+        ),
+      );
     }
 
     _persistir();
     notifyListeners();
+    // Debug: imprimir contenido actual del carrito para diagnóstico
+    debugPrint(
+      'CartProvider: items=${_items.map((i) => '${i.nombre}(${i.cantidad})').toList()}',
+    );
     return CartAddResult.exito;
   }
 
@@ -156,15 +162,20 @@ class CartProvider extends ChangeNotifier {
   /// Llamar antes del checkout para detectar cambios en precios o stock.
   /// [productosActuales] es la lista refrescada del backend.
   List<String> sincronizarConBackend(
-      List<({String id, double precio, int stock})> productosActuales) {
+    List<({String id, double precio, int stock})> productosActuales,
+  ) {
     final alertas = <String>[];
 
     for (final item in List.of(_items)) {
-      final actual = productosActuales.where((p) => p.id == item.productoId).firstOrNull;
+      final actual = productosActuales
+          .where((p) => p.id == item.productoId)
+          .firstOrNull;
 
       if (actual == null) {
         _items.remove(item);
-        alertas.add('${item.nombre} ya no está disponible y fue eliminado del carrito.');
+        alertas.add(
+          '${item.nombre} ya no está disponible y fue eliminado del carrito.',
+        );
         continue;
       }
 
@@ -175,9 +186,11 @@ class CartProvider extends ChangeNotifier {
         final nuevoItem = item.copyWith(precioUnitario: actual.precio);
         final idx = _items.indexOf(item);
         _items[idx] = nuevoItem;
-        alertas.add('El precio de ${item.nombre} cambió de '
-            '\$${item.precioUnitario.toStringAsFixed(2)} a '
-            '\$${actual.precio.toStringAsFixed(2)}.');
+        alertas.add(
+          'El precio de ${item.nombre} cambió de '
+          '\$${item.precioUnitario.toStringAsFixed(2)} a '
+          '\$${actual.precio.toStringAsFixed(2)}.',
+        );
         cambio = true;
       }
 
@@ -188,8 +201,14 @@ class CartProvider extends ChangeNotifier {
         cambio = true;
       } else if (item.cantidad > actual.stock) {
         final idx = _items.indexOf(item);
-        if (idx >= 0) _items[idx] = item.copyWith(cantidad: actual.stock, stockDisponible: actual.stock);
-        alertas.add('La cantidad de ${item.nombre} se ajustó a ${actual.stock} (stock disponible).');
+        if (idx >= 0)
+          _items[idx] = item.copyWith(
+            cantidad: actual.stock,
+            stockDisponible: actual.stock,
+          );
+        alertas.add(
+          'La cantidad de ${item.nombre} se ajustó a ${actual.stock} (stock disponible).',
+        );
         cambio = true;
       }
 
@@ -213,18 +232,20 @@ class CartProvider extends ChangeNotifier {
 
   /// Genera el objeto de orden listo para enviar al backend de checkout.
   Map<String, dynamic> buildOrdenPayload(String direccionEnvio) => {
-        'items': _items
-            .map((i) => {
-                  'id_producto': i.productoId,
-                  'cantidad':    i.cantidad,
-                  'precio_unitario': i.precioUnitario,
-                })
-            .toList(),
-        'subtotal':         subtotal,
-        'impuestos':        impuestos,
-        'total':            total,
-        'direccion_envio':  direccionEnvio,
-      };
+    'items': _items
+        .map(
+          (i) => {
+            'id_producto': i.productoId,
+            'cantidad': i.cantidad,
+            'precio_unitario': i.precioUnitario,
+          },
+        )
+        .toList(),
+    'subtotal': subtotal,
+    'impuestos': impuestos,
+    'total': total,
+    'direccion_envio': direccionEnvio,
+  };
 
   // ── Internos ───────────────────────────────────────────────────────────────
 

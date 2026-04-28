@@ -8,6 +8,9 @@ import '../providers/cart_provider.dart';
 import '../models/chat_message.dart';
 import '../models/cart_item.dart';
 import '../core/app_router.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../services/payment_service.dart';
+import '../utils/browser_utils.dart';
 
 // ==========================================
 // LAYOUT BASE (Header, Footer, Drawers)
@@ -35,9 +38,7 @@ class BaseLayout extends StatelessWidget {
         ],
       ),
       // Burbuja flotante del chatbot — solo visible para usuarios autenticados
-      floatingActionButton: auth.estaAutenticado
-          ? const _ChatFab()
-          : null,
+      floatingActionButton: auth.estaAutenticado ? const _ChatFab() : null,
     );
   }
 }
@@ -147,24 +148,36 @@ class _AdminMenuButton extends StatelessWidget {
   // Etiqueta legible por rol
   static String _labelRol(String rol) {
     switch (rol) {
-      case 'admin_pedidos':    return 'Gestión de Pedidos';
-      case 'admin_usuarios':   return 'Gestión de Usuarios';
-      case 'admin_inventario': return 'Inventario';
-      case 'admin_ventas':     return 'Ventas';
-      case 'admin_soporte':    return 'Soporte';
-      default:                 return 'Panel Admin';
+      case 'admin_pedidos':
+        return 'Gestión de Pedidos';
+      case 'admin_usuarios':
+        return 'Gestión de Usuarios';
+      case 'admin_inventario':
+        return 'Inventario';
+      case 'admin_ventas':
+        return 'Ventas';
+      case 'admin_soporte':
+        return 'Soporte';
+      default:
+        return 'Panel Admin';
     }
   }
 
   // Icono por sección
   static IconData _iconRol(String rol) {
     switch (rol) {
-      case 'admin_pedidos':    return Icons.receipt_long_outlined;
-      case 'admin_usuarios':   return Icons.people_outline;
-      case 'admin_inventario': return Icons.inventory_2_outlined;
-      case 'admin_ventas':     return Icons.bar_chart_outlined;
-      case 'admin_soporte':    return Icons.support_agent_outlined;
-      default:                 return Icons.admin_panel_settings_outlined;
+      case 'admin_pedidos':
+        return Icons.receipt_long_outlined;
+      case 'admin_usuarios':
+        return Icons.people_outline;
+      case 'admin_inventario':
+        return Icons.inventory_2_outlined;
+      case 'admin_ventas':
+        return Icons.bar_chart_outlined;
+      case 'admin_soporte':
+        return Icons.support_agent_outlined;
+      default:
+        return Icons.admin_panel_settings_outlined;
     }
   }
 
@@ -188,7 +201,10 @@ class _AdminMenuButton extends StatelessWidget {
         icon: Stack(
           alignment: Alignment.topRight,
           children: [
-            const Icon(Icons.admin_panel_settings, color: AppColors.primaryPurple),
+            const Icon(
+              Icons.admin_panel_settings,
+              color: AppColors.primaryPurple,
+            ),
             Container(
               width: 8,
               height: 8,
@@ -215,24 +231,42 @@ class _AdminMenuButton extends StatelessWidget {
             ),
           ),
           const PopupMenuDivider(),
-          _menuItem(AppRoutes.superAdminDashboard,
-              Icons.dashboard_outlined, 'Dashboard principal'),
-          _menuItem(AppRoutes.pedidosDashboard,
-              Icons.receipt_long_outlined, 'Gestión de Pedidos'),
-          _menuItem(AppRoutes.usuariosDashboard,
-              Icons.people_outline, 'Gestión de Usuarios'),
-          _menuItem(AppRoutes.inventarioDashboard,
-              Icons.inventory_2_outlined, 'Inventario / Productos'),
-          _menuItem(AppRoutes.ventasDashboard,
-              Icons.bar_chart_outlined, 'Ventas'),
-          _menuItem(AppRoutes.soporteDashboard,
-              Icons.support_agent_outlined, 'Soporte'),
+          _menuItem(
+            AppRoutes.superAdminDashboard,
+            Icons.dashboard_outlined,
+            'Dashboard principal',
+          ),
+          _menuItem(
+            AppRoutes.pedidosDashboard,
+            Icons.receipt_long_outlined,
+            'Gestión de Pedidos',
+          ),
+          _menuItem(
+            AppRoutes.usuariosDashboard,
+            Icons.people_outline,
+            'Gestión de Usuarios',
+          ),
+          _menuItem(
+            AppRoutes.inventarioDashboard,
+            Icons.inventory_2_outlined,
+            'Inventario / Productos',
+          ),
+          _menuItem(
+            AppRoutes.ventasDashboard,
+            Icons.bar_chart_outlined,
+            'Ventas',
+          ),
+          _menuItem(
+            AppRoutes.soporteDashboard,
+            Icons.support_agent_outlined,
+            'Soporte',
+          ),
         ],
       );
     }
 
     // ── Admin específico: botón directo a su dashboard ────────────────────
-    final ruta  = AppRouter.homeSegunRol(auth.rolActual);
+    final ruta = AppRouter.homeSegunRol(auth.rolActual);
     final label = _labelRol(auth.rolActual);
     final icono = _iconRol(auth.rolActual);
 
@@ -245,7 +279,10 @@ class _AdminMenuButton extends StatelessWidget {
 
   /// Construye un ítem de menú con icono y texto.
   static PopupMenuItem<String> _menuItem(
-      String ruta, IconData icono, String label) {
+    String ruta,
+    IconData icono,
+    String label,
+  ) {
     return PopupMenuItem<String>(
       value: ruta,
       child: Row(
@@ -302,7 +339,9 @@ class _NavBarItemState extends State<_NavBarItem> {
             child: Text(
               widget.title,
               style: TextStyle(
-                color: isActive ? AppColors.primaryPurple : (_hovered ? Colors.white : Colors.white70),
+                color: isActive
+                    ? AppColors.primaryPurple
+                    : (_hovered ? Colors.white : Colors.white70),
                 fontSize: 14,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
@@ -423,65 +462,86 @@ class CartDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppColors.background,
-      child: Consumer<CartProvider>(
-        builder: (context, cart, _) {
-          return Column(
-            children: [
-              // ── Cabecera ──────────────────────────────────────────────────
-              _CartHeader(totalUnidades: cart.totalUnidades),
+    // Hacemos el drawer más ancho para que ocupe más espacio en pantalla
+    final drawerWidth = MediaQuery.of(context).size.width * 0.35;
+    return SizedBox(
+      width: drawerWidth,
+      child: Drawer(
+        backgroundColor: AppColors.background,
+        child: Consumer<CartProvider>(
+          builder: (context, cart, _) {
+            return Column(
+              children: [
+                // ── Cabecera ──────────────────────────────────────────────────
+                _CartHeader(totalUnidades: cart.totalUnidades),
 
-              // ── Alerta de precios modificados ─────────────────────────────
-              if (cart.itemsConPrecioCambiado.isNotEmpty)
-                _PrecioAlertaBanner(items: cart.itemsConPrecioCambiado),
+                // ── Alerta de precios modificados ─────────────────────────────
+                if (cart.itemsConPrecioCambiado.isNotEmpty)
+                  _PrecioAlertaBanner(items: cart.itemsConPrecioCambiado),
 
-              // ── Lista de items ────────────────────────────────────────────
-              Expanded(
-                child: cart.isEmpty
-                    ? const _CarritoVacio()
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        itemCount: cart.items.length,
-                        itemBuilder: (_, i) => _CartItemTile(
-                          item: cart.items[i],
-                          onIncrementar: () => _cambiarCantidad(
-                              context, cart, cart.items[i],
-                              cart.items[i].cantidad + 1),
-                          onDecrementar: () => _cambiarCantidad(
-                              context, cart, cart.items[i],
-                              cart.items[i].cantidad - 1),
-                          onEliminar: () =>
-                              cart.eliminarProducto(cart.items[i].productoId),
+                // ── Lista de items ────────────────────────────────────────────
+                Expanded(
+                  child: cart.isEmpty
+                      ? const _CarritoVacio()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          itemCount: cart.items.length,
+                          itemBuilder: (_, i) => _CartItemTile(
+                            item: cart.items[i],
+                            onIncrementar: () => _cambiarCantidad(
+                              context,
+                              cart,
+                              cart.items[i],
+                              cart.items[i].cantidad + 1,
+                            ),
+                            onDecrementar: () => _cambiarCantidad(
+                              context,
+                              cart,
+                              cart.items[i],
+                              cart.items[i].cantidad - 1,
+                            ),
+                            onEliminar: () =>
+                                cart.eliminarProducto(cart.items[i].productoId),
+                          ),
                         ),
-                      ),
-              ),
+                ),
 
-              // ── Resumen financiero + botón checkout ───────────────────────
-              if (!cart.isEmpty) _CartResumen(cart: cart),
-            ],
-          );
-        },
+                // ── Resumen financiero + botón checkout ───────────────────────
+                if (!cart.isEmpty) _CartResumen(cart: cart),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
   void _cambiarCantidad(
-      BuildContext context, CartProvider cart, CartItem item, int nueva) {
+    BuildContext context,
+    CartProvider cart,
+    CartItem item,
+    int nueva,
+  ) {
     final resultado = cart.actualizarCantidad(item.productoId, nueva);
     if (resultado == CartUpdateResult.limiteStock) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Stock máximo disponible: ${item.stockDisponible}'),
-        backgroundColor: AppColors.warning,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stock máximo disponible: ${item.stockDisponible}'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } else if (resultado == CartUpdateResult.limiteNegocio) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Máximo 10 unidades por producto.'),
-        backgroundColor: AppColors.warning,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Máximo 10 unidades por producto.'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }
@@ -496,13 +556,14 @@ class _CartHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 48, 12, 16),
-      decoration: const BoxDecoration(
-        color: AppColors.headerBg,
-      ),
+      decoration: const BoxDecoration(color: AppColors.headerBg),
       child: Row(
         children: [
-          const Icon(Icons.shopping_cart_outlined,
-              color: Colors.white, size: 22),
+          const Icon(
+            Icons.shopping_cart_outlined,
+            color: Colors.white,
+            size: 22,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -538,15 +599,17 @@ class _PrecioAlertaBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.info_outline,
-              color: AppColors.warning, size: 18),
+          const Icon(Icons.info_outline, color: AppColors.warning, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'El precio de ${items.length == 1 ? items.first.nombre : '${items.length} productos'} '
               'cambió desde que los agregaste.',
               style: const TextStyle(
-                  fontSize: 12, color: AppColors.textPrimary, height: 1.4),
+                fontSize: 12,
+                color: AppColors.textPrimary,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -565,15 +628,19 @@ class _CarritoVacio extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shopping_cart_outlined,
-              size: 72, color: Colors.grey.shade300),
+          Icon(
+            Icons.shopping_cart_outlined,
+            size: 72,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 16),
           Text(
             'Tu carrito está vacío',
             style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade500),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade500,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -590,7 +657,8 @@ class _CarritoVacio extends StatelessWidget {
             icon: const Icon(Icons.storefront_outlined, size: 18),
             label: const Text('Ver catálogo'),
             style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primaryPurple),
+              backgroundColor: AppColors.primaryPurple,
+            ),
           ),
         ],
       ),
@@ -617,8 +685,7 @@ class _CartItemTile extends StatelessWidget {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Row(
@@ -649,7 +716,9 @@ class _CartItemTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -664,8 +733,11 @@ class _CartItemTile extends StatelessWidget {
                       ),
                       if (item.precioModificado) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.trending_up,
-                            size: 13, color: AppColors.warning),
+                        const Icon(
+                          Icons.trending_up,
+                          size: 13,
+                          color: AppColors.warning,
+                        ),
                       ],
                     ],
                   ),
@@ -673,7 +745,9 @@ class _CartItemTile extends StatelessWidget {
                   Text(
                     'Subtotal: \$${item.subtotalLinea.toStringAsFixed(2)}',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary),
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -685,8 +759,11 @@ class _CartItemTile extends StatelessWidget {
               children: [
                 IconButton(
                   onPressed: onEliminar,
-                  icon: const Icon(Icons.delete_outline,
-                      color: AppColors.error, size: 18),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                    size: 18,
+                  ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   tooltip: 'Eliminar',
@@ -739,8 +816,7 @@ class _CantidadControl extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '$cantidad',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ),
           _Btn(
@@ -789,9 +865,10 @@ class _ImagenPlaceholder extends StatelessWidget {
         child: Text(
           nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
           style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryPurple),
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryPurple,
+          ),
         ),
       ),
     );
@@ -830,16 +907,20 @@ class _CartResumen extends StatelessWidget {
                   builder: (_) => AlertDialog(
                     title: const Text('Vaciar carrito'),
                     content: const Text(
-                        '¿Eliminar todos los productos del carrito?'),
+                      '¿Eliminar todos los productos del carrito?',
+                    ),
                     actions: [
                       TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancelar')),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancelar'),
+                      ),
                       FilledButton(
-                          style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.error),
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Vaciar')),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Vaciar'),
+                      ),
                     ],
                   ),
                 );
@@ -847,22 +928,29 @@ class _CartResumen extends StatelessWidget {
                   await context.read<CartProvider>().vaciarCarrito();
                 }
               },
-              icon: const Icon(Icons.delete_sweep_outlined,
-                  size: 16, color: AppColors.error),
-              label: const Text('Vaciar',
-                  style: TextStyle(color: AppColors.error, fontSize: 12)),
+              icon: const Icon(
+                Icons.delete_sweep_outlined,
+                size: 16,
+                color: AppColors.error,
+              ),
+              label: const Text(
+                'Vaciar',
+                style: TextStyle(color: AppColors.error, fontSize: 12),
+              ),
               style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ),
           const SizedBox(height: 8),
 
           // Líneas de cálculo
           _LineaCalculo(
-              label: 'Subtotal (${cart.totalUnidades} art.)',
-              valor: cart.subtotal),
+            label: 'Subtotal (${cart.totalUnidades} art.)',
+            valor: cart.subtotal,
+          ),
           const SizedBox(height: 4),
           _LineaCalculo(label: 'IVA (16 %)', valor: cart.impuestos),
           const Divider(height: 20),
@@ -878,26 +966,78 @@ class _CartResumen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+              onPressed: () async {
+                final scaffold = ScaffoldMessenger.of(context);
+                scaffold.showSnackBar(
                   const SnackBar(
-                    content: Text('Redirigiendo al checkout...'),
+                    content: Text('Iniciando pago...'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
+
+                final paymentService = PaymentService();
+
+                // Web flow: use Stripe Checkout (hosted) since PaymentSheet is not supported
+                if (kIsWeb) {
+                  final payload = cart.buildOrdenPayload('');
+                  // Backend expects an 'amount' numeric field (total), añádelo explícitamente
+                  payload['amount'] = cart.total;
+                  final resp = await paymentService.createCheckoutSessionUrl(
+                    payload,
+                  );
+                  if (resp['success'] == true && resp['url'] != null) {
+                    final url = resp['url'] as String;
+                    // Open in new tab/window (no-op on non-web)
+                    openUrlInBrowser(url);
+                    scaffold.showSnackBar(
+                      const SnackBar(
+                        content: Text('Redirigiendo a Stripe Checkout...'),
+                      ),
+                    );
+                    // keep drawer open — user will return to the site after checkout
+                    return;
+                  } else {
+                    final message =
+                        resp['message']?.toString() ??
+                        'Error creando sesión de pago.';
+                    scaffold.showSnackBar(SnackBar(content: Text(message)));
+                    return;
+                  }
+                }
+
+                // Mobile/native flow: PaymentSheet
+                try {
+                  final result = await paymentService.payWithPaymentSheet(
+                    cart.total,
+                  );
+                  final ok = result['success'] == true;
+                  final message =
+                      result['message']?.toString() ??
+                      (ok
+                          ? 'Pago realizado correctamente'
+                          : 'Error al procesar el pago');
+                  scaffold.showSnackBar(SnackBar(content: Text(message)));
+                  if (ok) Navigator.pop(context);
+                } catch (e) {
+                  scaffold.showSnackBar(
+                    SnackBar(content: Text('Error al iniciar pago: $e')),
+                  );
+                }
               },
               icon: const Icon(Icons.lock_outline, size: 18),
               label: Text(
                 'Pagar  \$${cart.total.toStringAsFixed(2)}',
                 style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primaryPurple,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -1024,6 +1164,7 @@ class ProductCard extends StatelessWidget {
   final String imageUrl;
   final List<String> tags;
   final VoidCallback onDetailsTap;
+  final VoidCallback? onAdd;
   final bool isSale;
 
   const ProductCard({
@@ -1033,6 +1174,7 @@ class ProductCard extends StatelessWidget {
     required this.imageUrl,
     required this.tags,
     required this.onDetailsTap,
+    this.onAdd,
     this.isSale = false,
   });
 
@@ -1159,11 +1301,15 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       FilledButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Agregado al carrito')),
-                          );
-                        },
+                        onPressed:
+                            onAdd ??
+                            () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Agregado al carrito'),
+                                ),
+                              );
+                            },
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primaryPurple,
                           minimumSize: const Size(36, 36),
@@ -1308,9 +1454,10 @@ class _ChatFabState extends State<_ChatFab>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -1351,7 +1498,10 @@ class _ChatFabState extends State<_ChatFab>
                 decoration: BoxDecoration(
                   color: const Color(0xFF4ADE80),
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primaryPurple, width: 1.5),
+                  border: Border.all(
+                    color: AppColors.primaryPurple,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -1373,8 +1523,8 @@ class _ChatModal extends StatefulWidget {
 }
 
 class _ChatModalState extends State<_ChatModal> {
-  final _inputCtrl   = TextEditingController();
-  final _scrollCtrl  = ScrollController();
+  final _inputCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
 
   @override
   void dispose() {
@@ -1421,7 +1571,8 @@ class _ChatModalState extends State<_ChatModal> {
             children: [
               // ── Handle + Cabecera ────────────────────────────────────────
               _ChatModalHeader(
-                onNuevoChat: () async => context.read<ChatProvider>().nuevaConversacion(),
+                onNuevoChat: () async =>
+                    context.read<ChatProvider>().nuevaConversacion(),
                 onCerrar: () => Navigator.pop(context),
               ),
 
@@ -1460,11 +1611,15 @@ class _ChatModalState extends State<_ChatModal> {
                     }
 
                     _scrollAlFinal();
-                    final total = chat.mensajes.length + (chat.enviando ? 1 : 0);
+                    final total =
+                        chat.mensajes.length + (chat.enviando ? 1 : 0);
 
                     return ListView.builder(
                       controller: _scrollCtrl,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       itemCount: total,
                       itemBuilder: (_, i) {
                         if (chat.enviando && i == chat.mensajes.length) {
@@ -1480,10 +1635,7 @@ class _ChatModalState extends State<_ChatModal> {
               // ── Campo de entrada ─────────────────────────────────────────
               Padding(
                 padding: EdgeInsets.only(bottom: bottomPadding),
-                child: _ChatInput(
-                  controller: _inputCtrl,
-                  onEnviar: _enviar,
-                ),
+                child: _ChatInput(controller: _inputCtrl, onEnviar: _enviar),
               ),
             ],
           ),
@@ -1498,10 +1650,7 @@ class _ChatModalHeader extends StatelessWidget {
   final VoidCallback onNuevoChat;
   final VoidCallback onCerrar;
 
-  const _ChatModalHeader({
-    required this.onNuevoChat,
-    required this.onCerrar,
-  });
+  const _ChatModalHeader({required this.onNuevoChat, required this.onCerrar});
 
   @override
   Widget build(BuildContext context) {
@@ -1612,7 +1761,11 @@ class _ChatBienvenida extends StatelessWidget {
               gradient: AppColors.heroGradient,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 36),
+            child: const Icon(
+              Icons.smart_toy_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -1628,28 +1781,45 @@ class _ChatBienvenida extends StatelessWidget {
           const Text(
             'Pregúntame sobre productos musicales,\nel estado de tus pedidos o soporte.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 20),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             alignment: WrapAlignment.center,
-            children: [
-              '¿Qué guitarras tienen?',
-              '¿Cómo va mi pedido?',
-              'Información sobre teclados',
-              'Necesito soporte',
-            ].map((texto) => ActionChip(
-              label: Text(
-                texto,
-                style: const TextStyle(fontSize: 12, color: AppColors.primaryPurple),
-              ),
-              backgroundColor: AppColors.primaryLight,
-              side: const BorderSide(color: AppColors.primaryPurple, width: 0.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              onPressed: () => onSugerencia(texto),
-            )).toList(),
+            children:
+                [
+                      '¿Qué guitarras tienen?',
+                      '¿Cómo va mi pedido?',
+                      'Información sobre teclados',
+                      'Necesito soporte',
+                    ]
+                    .map(
+                      (texto) => ActionChip(
+                        label: Text(
+                          texto,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primaryPurple,
+                          ),
+                        ),
+                        backgroundColor: AppColors.primaryLight,
+                        side: const BorderSide(
+                          color: AppColors.primaryPurple,
+                          width: 0.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        onPressed: () => onSugerencia(texto),
+                      ),
+                    )
+                    .toList(),
           ),
         ],
       ),
@@ -1670,25 +1840,28 @@ class _BurbujaMensaje extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment:
-            esUsuario ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: esUsuario
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!esUsuario) ...[
-            _BotBubbleAvatar(),
-            const SizedBox(width: 8),
-          ],
+          if (!esUsuario) ...[_BotBubbleAvatar(), const SizedBox(width: 8)],
           Flexible(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxW),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  color: esUsuario ? AppColors.primaryPurple : AppColors.surface,
+                  color: esUsuario
+                      ? AppColors.primaryPurple
+                      : AppColors.surface,
                   borderRadius: BorderRadius.only(
-                    topLeft:     const Radius.circular(18),
-                    topRight:    const Radius.circular(18),
-                    bottomLeft:  Radius.circular(esUsuario ? 18 : 4),
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(esUsuario ? 18 : 4),
                     bottomRight: Radius.circular(esUsuario ? 4 : 18),
                   ),
                   boxShadow: [
@@ -1710,10 +1883,7 @@ class _BurbujaMensaje extends StatelessWidget {
               ),
             ),
           ),
-          if (esUsuario) ...[
-            const SizedBox(width: 8),
-            _UserBubbleAvatar(),
-          ],
+          if (esUsuario) ...[const SizedBox(width: 8), _UserBubbleAvatar()],
         ],
       ),
     );
@@ -1723,31 +1893,31 @@ class _BurbujaMensaje extends StatelessWidget {
 class _BotBubbleAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
-        width: 28,
-        height: 28,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1E1B2E), Color(0xFF4F46E5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 15),
-      );
+    width: 28,
+    height: 28,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF1E1B2E), Color(0xFF4F46E5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      shape: BoxShape.circle,
+    ),
+    child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 15),
+  );
 }
 
 class _UserBubbleAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
-        width: 28,
-        height: 28,
-        decoration: const BoxDecoration(
-          gradient: AppColors.heroGradient,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.person_rounded, color: Colors.white, size: 15),
-      );
+    width: 28,
+    height: 28,
+    decoration: const BoxDecoration(
+      gradient: AppColors.heroGradient,
+      shape: BoxShape.circle,
+    ),
+    child: const Icon(Icons.person_rounded, color: Colors.white, size: 15),
+  );
 }
 
 // ─── Indicador "escribiendo..." ───────────────────────────────────────────────
@@ -1792,10 +1962,10 @@ class _TypingIndicatorInlineState extends State<_TypingIndicatorInline>
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: const BorderRadius.only(
-                topLeft:     Radius.circular(18),
-                topRight:    Radius.circular(18),
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
                 bottomRight: Radius.circular(18),
-                bottomLeft:  Radius.circular(4),
+                bottomLeft: Radius.circular(4),
               ),
               boxShadow: [
                 BoxShadow(
@@ -1812,8 +1982,10 @@ class _TypingIndicatorInlineState extends State<_TypingIndicatorInline>
                   animation: _ctrl,
                   builder: (context2, _) {
                     final t = (_ctrl.value - i * 0.25).clamp(0.0, 1.0);
-                    final opacity =
-                        (t < 0.5 ? t * 2 : (1.0 - t) * 2).clamp(0.3, 1.0);
+                    final opacity = (t < 0.5 ? t * 2 : (1.0 - t) * 2).clamp(
+                      0.3,
+                      1.0,
+                    );
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: Opacity(
@@ -1871,7 +2043,10 @@ class _ChatInput extends StatelessWidget {
                 maxLines: 3,
                 textInputAction: TextInputAction.send,
                 enabled: !chat.enviando,
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Escribe tu mensaje...',
                   hintStyle: const TextStyle(
@@ -1880,8 +2055,10 @@ class _ChatInput extends StatelessWidget {
                   ),
                   filled: true,
                   fillColor: AppColors.background,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
@@ -1910,7 +2087,11 @@ class _ChatInput extends StatelessWidget {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      : const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                 ),
               ),
             ),

@@ -31,15 +31,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
-  void _agregarAlCarrito(BuildContext context, Product product,
-      {bool abrirCarrito = false}) {
+  void _agregarAlCarrito(
+    BuildContext context,
+    Product product, {
+    bool abrirCarrito = false,
+  }) {
     final cart = context.read<CartProvider>();
     final resultado = cart.agregarProducto(
-      productoId:       product.id,
-      nombre:           product.nombre,
-      precio:           product.precio,
-      imagenUrl:        product.imageUrl,
-      stockDisponible:  product.inventario,
+      productoId: product.id,
+      nombre: product.nombre,
+      precio: product.precio,
+      imagenUrl: product.imageUrl,
+      stockDisponible: product.inventario,
     );
 
     String mensaje;
@@ -48,22 +51,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     switch (resultado) {
       case CartAddResult.exito:
         mensaje = '${product.nombre} agregado al carrito';
-        color   = AppColors.success;
+        color = AppColors.success;
         if (abrirCarrito) Scaffold.of(context).openEndDrawer();
+        break;
       case CartAddResult.sinStock:
         mensaje = 'Sin stock disponible';
-        color   = AppColors.error;
+        color = AppColors.error;
+        break;
       case CartAddResult.limiteNegocio:
         mensaje = 'Máximo 10 unidades por producto';
-        color   = AppColors.warning;
+        color = AppColors.warning;
+        break;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(mensaje),
-      backgroundColor: color,
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 2),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -118,10 +126,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppColors.error,
+                        ),
                         const SizedBox(height: 12),
-                        Text('Error: ${snapshot.error}',
-                            style: const TextStyle(color: AppColors.textSecondary)),
+                        Text(
+                          'Error: ${snapshot.error}',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -204,7 +220,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               scrollDirection: Axis.horizontal,
               itemCount: product.multimedia.length,
               separatorBuilder: (_, i) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => _Thumbnail(product.multimedia[i].urlArchivo),
+              itemBuilder: (_, i) =>
+                  _Thumbnail(product.multimedia[i].urlArchivo),
             ),
           ),
         ],
@@ -272,7 +289,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ? Icons.check_circle_outline
                       : Icons.cancel_outlined,
                   size: 18,
-                  color: product.inventario > 0 ? AppColors.success : AppColors.error,
+                  color: product.inventario > 0
+                      ? AppColors.success
+                      : AppColors.error,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -281,7 +300,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       : 'Agotado',
                   style: TextStyle(
                     fontSize: 14,
-                    color: product.inventario > 0 ? AppColors.success : AppColors.error,
+                    color: product.inventario > 0
+                        ? AppColors.success
+                        : AppColors.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -291,10 +312,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.speed, size: 18, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.speed,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 6),
-                  Text('${product.bpm} BPM',
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                  Text(
+                    '${product.bpm} BPM',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
           ],
@@ -329,14 +359,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ? () => _agregarAlCarrito(context, product)
                     : null,
                 icon: const Icon(Icons.add_shopping_cart, size: 18),
-                label: const Text('Agregar',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                label: const Text(
+                  'Agregar',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primaryPurple,
                   disabledBackgroundColor: Colors.grey.shade300,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
@@ -344,17 +377,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Expanded(
               child: OutlinedButton(
                 onPressed: product.inventario > 0
-                    ? () => _agregarAlCarrito(context, product, abrirCarrito: true)
+                    ? () => _agregarAlCarrito(
+                        context,
+                        product,
+                        abrirCarrito: true,
+                      )
                     : null,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primaryPurple,
                   side: const BorderSide(color: AppColors.primaryPurple),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Comprar Ahora',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Comprar Ahora',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -369,8 +409,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Demo de Audio',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'Demo de Audio',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 16),
         const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -417,8 +459,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Demo de la Canción',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'Demo de la Canción',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
@@ -443,24 +487,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(product.spotifyTrackName ?? '',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14),
-                        overflow: TextOverflow.ellipsis),
-                    Text(product.spotifyArtistName ?? '',
-                        style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    Text(
+                      product.spotifyTrackName ?? '',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      product.spotifyArtistName ?? '',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    const Text('Preview 30s',
-                        style: TextStyle(color: Color(0xFF1DB954), fontSize: 11)),
+                    const Text(
+                      'Preview 30s',
+                      style: TextStyle(color: Color(0xFF1DB954), fontSize: 11),
+                    ),
                   ],
                 ),
               ),
               StatefulBuilder(
                 builder: (context, setInner) => IconButton(
                   icon: Icon(
-                    _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    _isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
                     color: const Color(0xFF1DB954),
                     size: 44,
                   ),
@@ -469,7 +525,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       await _audioPlayer.pause();
                       setInner(() => _isPlaying = false);
                     } else {
-                      await _audioPlayer.play(UrlSource(product.spotifyPreviewUrl!));
+                      await _audioPlayer.play(
+                        UrlSource(product.spotifyPreviewUrl!),
+                      );
                       setInner(() => _isPlaying = true);
                       _audioPlayer.onPlayerComplete.listen((_) {
                         if (mounted) setInner(() => _isPlaying = false);
@@ -489,8 +547,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Simulador de Colores DMX',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'Simulador de Colores DMX',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -506,8 +566,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        const Text('Selecciona un color para ver una vista previa.',
-            style: TextStyle(fontSize: 12, color: Colors.black54)),
+        const Text(
+          'Selecciona un color para ver una vista previa.',
+          style: TextStyle(fontSize: 12, color: Colors.black54),
+        ),
       ],
     );
   }

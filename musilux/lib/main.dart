@@ -19,6 +19,8 @@ import 'screens/profile_screen.dart';
 import 'screens/admin_products_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/contact_screen.dart';
+import 'screens/checkout_success_screen.dart';
+import 'screens/checkout_cancel_screen.dart';
 
 // Dashboards admin
 import 'screens/admin/super_admin_dashboard.dart';
@@ -73,36 +75,34 @@ class MusiluxApp extends StatelessWidget {
       routes: {
         // ── Públicas ────────────────────────────────────────────────────────
         AppRoutes.catalogoPublico: (context) => const HomeScreen(),
-        AppRoutes.login:           (context) => const LoginScreen(),
-        '/instrumentos':           (context) => const InstrumentsScreen(),
-        '/iluminacion':            (context) => const LightingScreen(),
-        '/vinilos':                (context) => const VinylsScreen(),
-        '/contacto':               (context) => const ContactScreen(),
-        AppRoutes.perfil:          (context) => const ProfileScreen(),
+        AppRoutes.login: (context) => const LoginScreen(),
+        '/instrumentos': (context) => const InstrumentsScreen(),
+        '/iluminacion': (context) => const LightingScreen(),
+        '/vinilos': (context) => const VinylsScreen(),
+        '/contacto': (context) => const ContactScreen(),
+        AppRoutes.perfil: (context) => const ProfileScreen(),
+        '/checkout/success': (context) => const CheckoutSuccessScreen(),
+        '/checkout/cancel': (context) => const CheckoutCancelScreen(),
 
         // ── Panel legacy (mantiene compatibilidad) ───────────────────────
-        AppRoutes.adminProducts:   (context) => const _AuthGuard(child: AdminProductsScreen()),
-        '/admin_products':         (context) => const _AuthGuard(child: AdminProductsScreen()),
+        AppRoutes.adminProducts: (context) =>
+            const _AuthGuard(child: AdminProductsScreen()),
+        '/admin_products': (context) =>
+            const _AuthGuard(child: AdminProductsScreen()),
 
         // ── Dashboards admin por rol ─────────────────────────────────────
-        AppRoutes.superAdminDashboard: (context) => const _AuthGuard(
-              child: SuperAdminDashboard(),
-            ),
-        AppRoutes.pedidosDashboard: (context) => const _AuthGuard(
-              child: PedidosDashboard(),
-            ),
-        AppRoutes.usuariosDashboard: (context) => const _AuthGuard(
-              child: UsuariosDashboard(),
-            ),
-        AppRoutes.inventarioDashboard: (context) => const _AuthGuard(
-              child: InventarioDashboard(),
-            ),
-        AppRoutes.ventasDashboard: (context) => const _AuthGuard(
-              child: VentasDashboard(),
-            ),
-        AppRoutes.soporteDashboard: (context) => const _AuthGuard(
-              child: SoporteDashboard(),
-            ),
+        AppRoutes.superAdminDashboard: (context) =>
+            const _AuthGuard(child: SuperAdminDashboard()),
+        AppRoutes.pedidosDashboard: (context) =>
+            const _AuthGuard(child: PedidosDashboard()),
+        AppRoutes.usuariosDashboard: (context) =>
+            const _AuthGuard(child: UsuariosDashboard()),
+        AppRoutes.inventarioDashboard: (context) =>
+            const _AuthGuard(child: InventarioDashboard()),
+        AppRoutes.ventasDashboard: (context) =>
+            const _AuthGuard(child: VentasDashboard()),
+        AppRoutes.soporteDashboard: (context) =>
+            const _AuthGuard(child: SoporteDashboard()),
 
         // ── ChatBot IA ───────────────────────────────────────────────────────
         AppRoutes.chat: (context) => const _AuthGuard(child: ChatScreen()),
@@ -111,7 +111,10 @@ class MusiluxApp extends StatelessWidget {
         // Ruta dinámica de detalle de producto
         if (settings.name != null &&
             settings.name!.startsWith('/detalle-producto/')) {
-          final productId = settings.name!.replaceFirst('/detalle-producto/', '');
+          final productId = settings.name!.replaceFirst(
+            '/detalle-producto/',
+            '',
+          );
           return MaterialPageRoute(
             builder: (context) => ProductDetailScreen(productId: productId),
             settings: settings,
