@@ -494,9 +494,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   Future<void> _pickImage() async {
     final picked = await _imagePicker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 85,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 88,
     );
     if (picked != null) {
       final bytes = await picked.readAsBytes();

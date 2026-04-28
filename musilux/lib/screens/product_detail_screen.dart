@@ -26,6 +26,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   late PageController _pageController;
   int _currentImageIndex = 0;
+  bool _expandDescription = false;
 
   // Skeleton pulse animation
   late AnimationController _skeletonCtrl;
@@ -63,6 +64,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       setState(() {
         _productId = extractedId;
         _currentImageIndex = 0;
+        _expandDescription = false;
         _productFuture = _apiService.fetchProductById(_productId!);
       });
       if (_pageController.hasClients) _pageController.jumpToPage(0);
@@ -301,7 +303,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: SizedBox(
-              height: 300,
+              height: _isMobile ? 300.0 : 520.0,
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _currentImageIndex = i),
@@ -310,6 +312,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   imageUrl: urls[i],
                   fit: BoxFit.cover,
                   width: double.infinity,
+                  filterQuality: FilterQuality.high,
+                  memCacheHeight: _isMobile ? 900 : 1560,
                   placeholder: (_, _) => Container(
                     color: AppColors.surfaceVariant,
                     child: const Center(child: CircularProgressIndicator()),
@@ -489,16 +493,54 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
         const SizedBox(height: 16),
 
-        // Descripción
-        if (product.descripcion != null && product.descripcion!.isNotEmpty)
-          Text(
-            product.descripcion!,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.7,
+        // Descripción colapsable
+        if (product.descripcion != null && product.descripcion!.isNotEmpty) ...[
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: Text(
+              product.descripcion!,
+              maxLines: _expandDescription ? null : 3,
+              overflow: _expandDescription
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.7,
+              ),
             ),
           ),
+          GestureDetector(
+            onTap: () =>
+                setState(() => _expandDescription = !_expandDescription),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _expandDescription ? 'Ver menos' : 'Ver más',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.primaryPurple,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    _expandDescription
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: AppColors.primaryPurple,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
 
         // Demos según tipo
@@ -630,6 +672,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     width: 56,
                     height: 56,
                     fit: BoxFit.cover,
+                    memCacheWidth: 168,
+                    memCacheHeight: 168,
                   ),
                 ),
               const SizedBox(width: 14),
@@ -805,6 +849,9 @@ class _ThumbnailTile extends StatelessWidget {
         child: CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          memCacheWidth: 192,
+          memCacheHeight: 192,
           placeholder: (_, _) =>
               Container(color: AppColors.surfaceVariant),
           errorWidget: (_, _, _) => Container(
@@ -853,6 +900,9 @@ class _RelatedProductCard extends StatelessWidget {
                 height: 110,
                 width: 140,
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                memCacheWidth: 420,
+                memCacheHeight: 330,
                 placeholder: (_, _) => Container(
                     height: 110, color: AppColors.surfaceVariant),
                 errorWidget: (_, _, _) => Container(
