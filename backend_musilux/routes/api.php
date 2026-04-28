@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\SpotifyController;
+use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\Admin\AdminPedidoController;
 use App\Http\Controllers\Admin\AdminUsuarioController;
 use App\Http\Controllers\Admin\ReporteController;
@@ -40,8 +41,9 @@ Route::prefix('auth')->group(function () {
 // ──────────────────────────────────────────────
 // Productos — lectura pública
 // ──────────────────────────────────────────────
-Route::get('/products',      [ProductController::class, 'index']);
-Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::get('/products',               [ProductController::class, 'index']);
+Route::get('/products/{id}',          [ProductController::class, 'show']);
+Route::get('/products/{id}/related',  [ProductController::class, 'related']);
 
 // ──────────────────────────────────────────────
 // Spotify (público — backend actúa de proxy)
@@ -52,6 +54,15 @@ Route::get('/spotify/search', [SpotifyController::class, 'search']);
 // Rutas autenticadas
 // ──────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
+
+    // ──────────────────────────────────────────────
+    // Usuario — cambiar contraseña y dirección
+    // ──────────────────────────────────────────────
+    Route::prefix('usuario')->group(function () {
+        Route::post('/cambiar-contrasena', [UsuarioController::class, 'cambiarContrasena']);
+        Route::put('/direccion', [UsuarioController::class, 'actualizarDireccion']);
+        Route::get('/perfil', [UsuarioController::class, 'perfil']);
+    });
 
     // ──────────────────────────────────────────────
     // ChatBot IA — disponible para todos los usuarios autenticados

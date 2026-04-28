@@ -5,6 +5,7 @@ import '../api_constants.dart';
 import '../services/auth_service.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
+import 'profile_edit.dart';
 
 class _RoleOption {
   final int id;
@@ -299,6 +300,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? 'Cargando...'
               : '${_misPedidosCount!} pedidos realizados',
         ),
+        const SizedBox(height: 30),
+
+        // 🔹 BOTÓN CAMBIAR CONTRASEÑA
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ProfileEditScreen(
+                    currentUser: _currentUser,
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryPurple,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text(
+              'Cambiar contraseña',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 15),
+////////////////////////////////////////
         const SizedBox(height: 40),
         SizedBox(
           width: double.infinity,

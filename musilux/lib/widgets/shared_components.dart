@@ -1119,6 +1119,9 @@ class CategoryCard extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+              memCacheWidth: 900,
+              memCacheHeight: 540,
               errorWidget: (c, u, e) => Container(color: Colors.grey),
             ),
             Container(color: Colors.black.withValues(alpha: 0.4)),
@@ -1199,6 +1202,9 @@ class ProductCard extends StatelessWidget {
                   CachedNetworkImage(
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                    memCacheWidth: 750,
+                    memCacheHeight: 600,
                     placeholder: (context, url) => Container(
                       color: AppColors.surfaceVariant,
                       child: const Center(
