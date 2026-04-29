@@ -56,8 +56,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 content: Text(
                   success
                       ? product == null
-                          ? 'Producto creado correctamente'
-                          : 'Producto actualizado correctamente'
+                            ? 'Producto creado correctamente'
+                            : 'Producto actualizado correctamente'
                       : 'Error al guardar el producto. Revisa la consola.',
                 ),
                 backgroundColor: success ? Colors.green : Colors.red,
@@ -70,31 +70,37 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   }
 
   Future<void> _deleteProduct(String id, String nombre) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Eliminar producto'),
-          ],
-        ),
-        content: Text('¿Eliminar "$nombre"? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+    final confirm =
+        await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('Eliminar producto'),
+              ],
+            ),
+            content: Text(
+              '¿Eliminar "$nombre"? Esta acción no se puede deshacer.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Eliminar'),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (!confirm) return;
 
@@ -185,11 +191,18 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               }
               if (snapshot.hasError) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 40,
+                    horizontal: 24,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red.shade300,
+                      ),
                       const SizedBox(height: 12),
                       Text('Error: ${snapshot.error}'),
                       const SizedBox(height: 16),
@@ -204,7 +217,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               }
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 60,
+                    horizontal: 24,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -273,9 +289,12 @@ class _ProductCard extends StatelessWidget {
 
   Color _tipoColor() {
     switch (product.tipoProducto) {
-      case 'digital':  return Colors.blue;
-      case 'servicio': return Colors.orange;
-      default:         return Colors.green; // fisico
+      case 'digital':
+        return Colors.blue;
+      case 'servicio':
+        return Colors.orange;
+      default:
+        return Colors.green; // fisico
     }
   }
 
@@ -302,9 +321,13 @@ class _ProductCard extends StatelessWidget {
                         width: 64,
                         height: 64,
                         color: Colors.grey.shade200,
-                        child: const Icon(Icons.image_outlined, color: Colors.grey),
+                        child: const Icon(
+                          Icons.image_outlined,
+                          color: Colors.grey,
+                        ),
                       ),
-                      errorWidget: (_, __, ___) => _PlaceholderAvatar(product: product),
+                      errorWidget: (_, __, ___) =>
+                          _PlaceholderAvatar(product: product),
                     )
                   : _PlaceholderAvatar(product: product),
             ),
@@ -338,7 +361,10 @@ class _ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: _tipoColor().withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
@@ -368,7 +394,10 @@ class _ProductCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: Icon(Icons.edit_outlined, color: AppColors.primaryPurple),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.primaryPurple,
+                  ),
                   tooltip: 'Editar',
                   onPressed: onEdit,
                   visualDensity: VisualDensity.compact,
@@ -457,14 +486,14 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     super.initState();
     final p = widget.product;
     _nombreCtrl = TextEditingController(text: p?.nombre ?? '');
-    _slugCtrl   = TextEditingController(text: p?.slug ?? '');
-    _descCtrl   = TextEditingController(text: p?.descripcion ?? '');
+    _slugCtrl = TextEditingController(text: p?.slug ?? '');
+    _descCtrl = TextEditingController(text: p?.descripcion ?? '');
     _precioCtrl = TextEditingController(text: p?.precio.toString() ?? '');
-    _invCtrl    = TextEditingController(text: p?.inventario.toString() ?? '');
-    _bpmCtrl    = TextEditingController(text: p?.bpm?.toString() ?? '');
+    _invCtrl = TextEditingController(text: p?.inventario.toString() ?? '');
+    _bpmCtrl = TextEditingController(text: p?.bpm?.toString() ?? '');
     _tipoProducto = p?.tipoProducto ?? 'fisico';
-    _idCategoria  = p?.idCategoria ?? 1;
-    _estaActivo   = p?.estaActivo ?? true;
+    _idCategoria = p?.idCategoria ?? 1;
+    _estaActivo = p?.estaActivo ?? true;
     _existingImageUrl = p?.imagenUrl;
 
     if (p?.spotifyTrackId != null) {
@@ -511,7 +540,10 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   Future<void> _searchSpotify() async {
     final query = _spotifySearchCtrl.text.trim();
     if (query.isEmpty) return;
-    setState(() { _isSearchingSpotify = true; _spotifyResults = []; });
+    setState(() {
+      _isSearchingSpotify = true;
+      _spotifyResults = [];
+    });
     try {
       final results = await _spotifyService.searchTracks(query);
       if (mounted) setState(() => _spotifyResults = results);
@@ -529,13 +561,17 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() { _isSaving = true; _isUploadingImage = _pickedImage != null; });
+    setState(() {
+      _isSaving = true;
+      _isUploadingImage = _pickedImage != null;
+    });
 
     String? finalImageUrl = _existingImageUrl;
 
     if (_pickedImage != null) {
       try {
-        final folder = widget.product?.id ??
+        final folder =
+            widget.product?.id ??
             'nuevo-${DateTime.now().millisecondsSinceEpoch}';
         finalImageUrl = await FirebaseStorageService.uploadProductImage(
           _pickedImage!,
@@ -550,7 +586,10 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
             ),
           );
         }
-        setState(() { _isSaving = false; _isUploadingImage = false; });
+        setState(() {
+          _isSaving = false;
+          _isUploadingImage = false;
+        });
         return;
       }
     }
@@ -603,7 +642,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                     AppColors.primaryPurple.withValues(alpha: 0.8),
                   ],
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               child: Row(
                 children: [
@@ -640,7 +681,6 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       // ── Sección: Información básica ─────────────────────
                       _SectionHeader(
                         icon: Icons.info_outline,
@@ -652,7 +692,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                         controller: _nombreCtrl,
                         label: 'Nombre del producto',
                         icon: Icons.label_outline,
-                        validator: (v) => v!.trim().isEmpty ? 'Requerido' : null,
+                        validator: (v) =>
+                            v!.trim().isEmpty ? 'Requerido' : null,
                         onChanged: (val) {
                           if (isNew) {
                             _slugCtrl.text = val
@@ -688,8 +729,14 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                           ),
                         ),
                         items: const [
-                          DropdownMenuItem(value: 1, child: Text('Instrumentos')),
-                          DropdownMenuItem(value: 2, child: Text('Iluminación')),
+                          DropdownMenuItem(
+                            value: 1,
+                            child: Text('Instrumentos'),
+                          ),
+                          DropdownMenuItem(
+                            value: 2,
+                            child: Text('Iluminación'),
+                          ),
                           DropdownMenuItem(value: 3, child: Text('Vinilos')),
                         ],
                         onChanged: (v) => setState(() => _idCategoria = v!),
@@ -753,7 +800,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                               keyboardType: TextInputType.number,
                               validator: (v) {
                                 if (v!.isEmpty) return 'Requerido';
-                                if (double.tryParse(v) == null) return 'Número inválido';
+                                if (double.tryParse(v) == null)
+                                  return 'Número inválido';
                                 return null;
                               },
                             ),
@@ -767,7 +815,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                               keyboardType: TextInputType.number,
                               validator: (v) {
                                 if (v!.isEmpty) return 'Requerido';
-                                if (int.tryParse(v) == null) return 'Número inválido';
+                                if (int.tryParse(v) == null)
+                                  return 'Número inválido';
                                 return null;
                               },
                             ),
@@ -878,7 +927,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                                     ),
                                   )
                                 : const Icon(Icons.search),
-                            onPressed: _isSearchingSpotify ? null : _searchSpotify,
+                            onPressed: _isSearchingSpotify
+                                ? null
+                                : _searchSpotify,
                             style: IconButton.styleFrom(
                               backgroundColor: AppColors.primaryPurple,
                               foregroundColor: Colors.white,
@@ -904,7 +955,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                                   const Divider(height: 1),
                               itemBuilder: (_, i) {
                                 final track = _spotifyResults[i];
-                                final isSelected = _selectedTrack?.id == track.id;
+                                final isSelected =
+                                    _selectedTrack?.id == track.id;
                                 return ListTile(
                                   dense: true,
                                   leading: ClipRRect(
@@ -1000,10 +1052,10 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                       _isUploadingImage
                           ? 'Subiendo imagen...'
                           : _isSaving
-                              ? 'Guardando...'
-                              : isNew
-                                  ? 'Crear producto'
-                                  : 'Guardar cambios',
+                          ? 'Guardando...'
+                          : isNew
+                          ? 'Crear producto'
+                          : 'Guardar cambios',
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primaryPurple,
@@ -1099,7 +1151,10 @@ class _StyledField extends StatelessWidget {
         helperText: helperText,
         prefixIcon: Icon(icon),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -1286,11 +1341,7 @@ class _ImagePreview extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: SizedBox(
-            height: 160,
-            width: double.infinity,
-            child: child,
-          ),
+          child: SizedBox(height: 160, width: double.infinity, child: child),
         ),
         Padding(
           padding: const EdgeInsets.all(4),

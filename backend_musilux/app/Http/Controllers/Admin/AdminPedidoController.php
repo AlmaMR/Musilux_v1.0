@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pedido;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminPedidoController extends Controller
 {
@@ -15,11 +17,11 @@ class AdminPedidoController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // TODO: implementar cuando exista el modelo Pedido
-        return response()->json([
-            'data'    => [],
-            'message' => 'Módulo de pedidos en construcción.',
-        ]);
+        $pedidos = Pedido::with('usuario')
+            ->orderBy('creado_en', 'desc')
+            ->paginate(20);
+
+        return response()->json($pedidos);
     }
 
     /**
@@ -29,10 +31,14 @@ class AdminPedidoController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        return response()->json([
-            'data'    => null,
-            'message' => 'Módulo de pedidos en construcción.',
-        ]);
+        $pedido = Pedido::with(['usuario', 'items'])
+            ->find($id);
+
+        if (! $pedido) {
+            return response()->json(['message' => 'Pedido no encontrado.'], 404);
+        }
+
+        return response()->json($pedido);
     }
 
     /**
@@ -43,13 +49,29 @@ class AdminPedidoController extends Controller
     public function actualizarEstado(Request $request, string $id): JsonResponse
     {
         $request->validate([
-            'estado'      => 'sometimes|string|max:50',
-            'guia_envio'  => 'sometimes|string|max:100',
+            'estado'     => ['sometimes', 'string', Rule::in([
+                'pendiente',
+                'confirmado',
+                'en_preparacion',
+                'enviado',
+                'entregado',
+                'cancelado',
+            ])],
+            'guia_envio' => 'sometimes|nullable|string|max:100',
         ]);
 
-        // TODO: implementar cuando exista el modelo Pedido
+        $pedido = Pedido::find($id);
+
+        if (! $pedido) {
+            return response()->json(['message' => 'Pedido no encontrado.'], 404);
+        }
+
+        $pedido->fill($request->only(['estado', 'guia_envio']));
+        $pedido->save();
+
         return response()->json([
-            'message' => 'Estado actualizado (módulo en construcción).',
+            'message' => 'Pedido actualizado correctamente.',
+            'pedido'  => $pedido->fresh(['usuario', 'items']),
         ]);
     }
 }
