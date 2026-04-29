@@ -157,6 +157,35 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
     );
   }
 
+  Widget _buildItemsSection(List<dynamic>? items) {
+    if (items == null || items.isEmpty) {
+      return _buildField('Productos', 'No hay artículos');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Productos',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...items.map((item) {
+            final nombre =
+                item['nombre_producto']?.toString() ?? item['nombre']?.toString() ?? 'Producto desconocido';
+            final cantidad = item['cantidad']?.toString() ?? item['qty']?.toString() ?? 'N/A';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text('• $nombre x $cantidad'),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -296,6 +325,7 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
                   'Intento pago',
                   pedido['id_intento_pago']?.toString() ?? 'N/A',
                 ),
+                _buildItemsSection(pedido['items'] as List<dynamic>?),
                 _buildField(
                   'Creado en',
                   _formatDate(pedido['creado_en'] ?? pedido['created_at']),

@@ -17,7 +17,7 @@ class AdminPedidoController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $pedidos = Pedido::with('usuario')
+        $pedidos = Pedido::with(['usuario', 'items'])
             ->orderBy('creado_en', 'desc')
             ->paginate(20);
 
