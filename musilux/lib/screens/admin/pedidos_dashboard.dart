@@ -298,14 +298,6 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
                   _formatMoney(pedido['subtotal'] ?? pedido['monto_subtotal']),
                 ),
                 _buildField(
-                  'Impuesto',
-                  _formatMoney(
-                    pedido['monto_impuesto'] ??
-                        pedido['tax'] ??
-                        pedido['impuesto'],
-                  ),
-                ),
-                _buildField(
                   'Costo envío',
                   _formatMoney(
                     pedido['costo_envio'] ?? pedido['shipping_cost'],
