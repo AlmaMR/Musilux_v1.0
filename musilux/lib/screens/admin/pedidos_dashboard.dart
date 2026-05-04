@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
 import '../../api_constants.dart';
@@ -22,6 +25,7 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
   bool _cargando = true;
   String? _error;
   final TextEditingController _busquedaController = TextEditingController();
+  final TextEditingController _facturaController = TextEditingController();
   String _textoBusqueda = '';
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
@@ -44,7 +48,113 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
   @override
   void dispose() {
     _busquedaController.dispose();
+    _facturaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _mostrarDialogoFactura() async {
+    _facturaController.text = '';
+
+    final resultado = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Facturar pedido'),
+        content: TextField(
+          controller: _facturaController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Número de pedido',
+            hintText: 'Ingrese el ID del pedido a facturar',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_facturaController.text.trim().isNotEmpty) {
+                Navigator.of(context).pop(true);
+              }
+            },
+            child: const Text('Facturar'),
+          ),
+        ],
+      ),
+    );
+
+    if (resultado == true) {
+      _facturarPedido(_facturaController.text.trim());
+    }
+  }
+
+  void _facturarPedido(String pedidoId) async {
+    final pedidoEncontrado = _pedidosOriginal.cast<Map<String, dynamic>?>().firstWhere(
+          (pedido) => pedido != null && pedido['id']?.toString() == pedidoId,
+          orElse: () => null,
+        );
+
+    if (pedidoEncontrado == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se encontró el pedido #$pedidoId.'),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+      return;
+    }
+
+    // Generar PDF
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Factura - Pedido #$pedidoId', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 20),
+            pw.Text('Usuario: ${pedidoEncontrado['id_usuario']?.toString() ?? 'N/A'}'),
+            pw.Text('Estado: ${pedidoEncontrado['estado']?.toString() ?? 'N/A'}'),
+            pw.Text('Subtotal: ${_formatMoney(pedidoEncontrado['subtotal'] ?? pedidoEncontrado['monto_subtotal'])}'),
+            pw.Text('Costo envío: ${_formatMoney(pedidoEncontrado['costo_envio'] ?? pedidoEncontrado['shipping_cost'])}'),
+            pw.Text('Monto total: ${_formatMoney(pedidoEncontrado['monto_total'] ?? pedidoEncontrado['total'])}'),
+            pw.Text('Dirección envío: ${pedidoEncontrado['id_direccion_envio']?.toString() ?? pedidoEncontrado['direccion_envio']?.toString() ?? 'N/A'}'),
+            pw.Text('Intento pago: ${pedidoEncontrado['id_intento_pago']?.toString() ?? 'N/A'}'),
+            pw.Text('Creado en: ${_formatDate(pedidoEncontrado['creado_en'] ?? pedidoEncontrado['created_at'])}'),
+            pw.SizedBox(height: 20),
+            pw.Text('Productos:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            ..._buildPdfItems(pedidoEncontrado['items'] as List<dynamic>?),
+          ],
+        ),
+      ),
+    );
+
+    // Compartir/descargar PDF
+    await Printing.sharePdf(bytes: await pdf.save(), filename: 'factura_pedido_$pedidoId.pdf');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Factura creada y descargada para pedido #$pedidoId'),
+          backgroundColor: Colors.green.shade600,
+        ),
+      );
+    }
+  }
+
+  List<pw.Widget> _buildPdfItems(List<dynamic>? items) {
+    if (items == null || items.isEmpty) {
+      return [pw.Text('No hay artículos')];
+    }
+
+    return items.map((item) {
+      final nombre = item['nombre_producto']?.toString() ?? item['nombre']?.toString() ?? 'Producto desconocido';
+      final cantidad = item['cantidad']?.toString() ?? item['qty']?.toString() ?? 'N/A';
+      return pw.Text('• $nombre x $cantidad');
+    }).toList();
   }
 
   Future<void> _cargarPedidos() async {
@@ -266,7 +376,7 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text('• $nombre x $cantidad'),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -301,6 +411,13 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _mostrarDialogoFactura,
+        icon: const Icon(Icons.receipt_long),
+        label: const Text('Factura'),
+        backgroundColor: AppColors.primaryPurple,
+      ),
     );
   }
 
@@ -456,6 +573,7 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: _busquedaController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Número de pedido',
@@ -466,7 +584,6 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
                 _textoBusqueda = value;
                 _aplicarFiltro();
               },
-              controller: TextEditingController(text: _textoBusqueda),
             ),
             const SizedBox(height: 12),
             Row(
