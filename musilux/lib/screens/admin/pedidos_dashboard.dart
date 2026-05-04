@@ -18,8 +18,13 @@ class PedidosDashboard extends StatefulWidget {
 
 class _PedidosDashboardState extends State<PedidosDashboard> {
   List<dynamic> _pedidos = [];
+  List<dynamic> _pedidosOriginal = [];
   bool _cargando = true;
   String? _error;
+  final TextEditingController _busquedaController = TextEditingController();
+  String _textoBusqueda = '';
+  DateTime? _fechaInicio;
+  DateTime? _fechaFin;
 
   static const List<String> _estados = [
     'pendiente',
@@ -34,6 +39,12 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
   void initState() {
     super.initState();
     _cargarPedidos();
+  }
+
+  @override
+  void dispose() {
+    _busquedaController.dispose();
+    super.dispose();
   }
 
   Future<void> _cargarPedidos() async {
@@ -55,7 +66,11 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() => _pedidos = data['data'] ?? []);
+        final pedidos = data['data'] ?? [];
+        setState(() {
+          _pedidosOriginal = List<dynamic>.from(pedidos);
+          _aplicarFiltro();
+        });
       } else if (response.statusCode == 403) {
         setState(() => _error = 'Sin permiso para ver pedidos.');
       } else {
@@ -136,6 +151,77 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
       return parsed.toLocal().toString();
     }
     return value.toString();
+  }
+
+  DateTime? _parsePedidoDate(Map<String, dynamic> pedido) {
+    final dateValue = pedido['creado_en'] ?? pedido['created_at'];
+    if (dateValue == null) return null;
+    return DateTime.tryParse(dateValue.toString());
+  }
+
+  void _aplicarFiltro() {
+    final criterio = _textoBusqueda.trim().toLowerCase();
+    setState(() {
+      _pedidos = _pedidosOriginal.where((element) {
+        final pedido = element as Map<String, dynamic>;
+        final idTexto = pedido['id']?.toString().toLowerCase() ?? '';
+        final fechaPedido = _parsePedidoDate(pedido);
+
+        final cumpleId = criterio.isEmpty || idTexto.contains(criterio);
+        final cumpleFechaInicio = _fechaInicio == null || (fechaPedido != null && !fechaPedido.isBefore(_fechaInicio!));
+        final cumpleFechaFin = _fechaFin == null || (fechaPedido != null && !fechaPedido.isAfter(_fechaFin!));
+
+        return cumpleId && cumpleFechaInicio && cumpleFechaFin;
+      }).toList();
+    });
+  }
+
+  Future<void> _selectFechaInicio() async {
+    final ahora = DateTime.now();
+    final fecha = await showDatePicker(
+      context: context,
+      initialDate: _fechaInicio ?? ahora,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (fecha != null) {
+      setState(() {
+        _fechaInicio = fecha;
+        if (_fechaFin != null && _fechaFin!.isBefore(_fechaInicio!)) {
+          _fechaFin = _fechaInicio;
+        }
+      });
+      _aplicarFiltro();
+    }
+  }
+
+  Future<void> _selectFechaFin() async {
+    final ahora = DateTime.now();
+    final fecha = await showDatePicker(
+      context: context,
+      initialDate: _fechaFin ?? _fechaInicio ?? ahora,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (fecha != null) {
+      setState(() {
+        _fechaFin = fecha;
+        if (_fechaInicio != null && _fechaInicio!.isAfter(_fechaFin!)) {
+          _fechaInicio = _fechaFin;
+        }
+      });
+      _aplicarFiltro();
+    }
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _textoBusqueda = '';
+      _fechaInicio = null;
+      _fechaFin = null;
+      _busquedaController.clear();
+    });
+    _aplicarFiltro();
   }
 
   Widget _buildField(String label, String value) {
@@ -248,12 +334,15 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
       return RefreshIndicator(
         onRefresh: _cargarPedidos,
         child: ListView(
+          padding: const EdgeInsets.all(16),
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 160),
-            Center(
+          children: [
+            _buildFilters(),
+            const SizedBox(height: 24),
+            const SizedBox(height: 120),
+            const Center(
               child: Text(
-                'No hay pedidos disponibles.',
+                'No se encontraron pedidos con los filtros aplicados.',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ),
@@ -266,10 +355,13 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
       onRefresh: _cargarPedidos,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: _pedidos.length,
+        itemCount: _pedidos.length + 1,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final pedido = _pedidos[index] as Map<String, dynamic>;
+          if (index == 0) {
+            return _buildFilters();
+          }
+          final pedido = _pedidos[index - 1] as Map<String, dynamic>;
           final estado = pedido['estado']?.toString() ?? 'Sin estado';
           final id = pedido['id']?.toString() ?? 'N/A';
 
@@ -349,4 +441,67 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
       ),
     );
   }
-}
+  Widget _buildFilters() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Filtros de búsqueda',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Número de pedido',
+                hintText: 'Buscar por ID de pedido',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) {
+                _textoBusqueda = value;
+                _aplicarFiltro();
+              },
+              controller: TextEditingController(text: _textoBusqueda),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.date_range),
+                    label: Text(_fechaInicio == null
+                        ? 'Fecha inicio'
+                        : 'Desde: ${_fechaInicio!.toLocal().toString().split(' ').first}'),
+                    onPressed: _selectFechaInicio,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.date_range),
+                    label: Text(_fechaFin == null
+                        ? 'Fecha fin'
+                        : 'Hasta: ${_fechaFin!.toLocal().toString().split(' ').first}'),
+                    onPressed: _selectFechaFin,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _clearFilters,
+                child: const Text('Limpiar filtros'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }}
