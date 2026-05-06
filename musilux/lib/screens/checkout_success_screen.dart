@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 import '../api_constants.dart';
+import '../services/auth_service.dart';
+import '../utils/web_helpers.dart';
 
 class CheckoutSuccessScreen extends StatefulWidget {
   const CheckoutSuccessScreen({super.key});
@@ -33,7 +35,20 @@ class _CheckoutSuccessScreenState extends State<CheckoutSuccessScreen> {
     try {
       // Stripe redirige con ?session_id=...
       final uri = Uri.base;
-      final sid = uri.queryParameters['session_id'];
+      // Intentar leer session_id desde query (directo) o desde fragment/hash (p. ej. /#/checkout/success?session_id=...)
+      String? sid = uri.queryParameters['session_id'];
+      if (sid == null || sid.isEmpty) {
+        // Revisar fragment
+        final fragment = uri.fragment; // todo después del #
+        if (fragment.isNotEmpty) {
+          try {
+            final fUri = Uri.parse(fragment);
+            sid = fUri.queryParameters['session_id'] ?? sid;
+          } catch (_) {
+            // fragment might be like '/checkout/success?session_id=..' which Uri.parse can handle
+          }
+        }
+      }
       if (sid == null || sid.isEmpty) {
         // No hay session id — mostrar mensaje simple y permitir volver al inicio
         setState(() {
@@ -48,9 +63,19 @@ class _CheckoutSuccessScreenState extends State<CheckoutSuccessScreen> {
         _loading = true;
       });
 
+      // Capturar referencias antes de cualquier await para evitar usar
+      // BuildContext a través de gaps asíncronos.
+      final cartProvider = context.read<CartProvider>();
+      final auth = AuthService();
+
       // Llamar endpoint backend para recuperar detalles de la sesión
       final url = Uri.parse('${ApiConstants.baseUrl}/checkout/session/$sid');
-      final resp = await http.get(url, headers: {'Accept': 'application/json'});
+      final headers = {'Accept': 'application/json'};
+      final token = await auth.getToken();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final resp = await http.get(url, headers: headers);
       if (resp.statusCode != 200) {
         setState(() {
           _error = 'Error al obtener detalles de pago: ${resp.statusCode}';
@@ -82,6 +107,29 @@ class _CheckoutSuccessScreenState extends State<CheckoutSuccessScreen> {
         _items = items;
         _loading = false;
       });
+
+      // Si la sesión muestra payment_status "paid" o "paid" en payment_intent, limpiar carrito automáticamente
+      final paymentStatus = data['payment_status'] as String?;
+      final paymentIntent = data['payment_intent'];
+      bool isPaid = false;
+      if (paymentStatus != null && paymentStatus.toLowerCase() == 'paid')
+        isPaid = true;
+      if (!isPaid && paymentIntent is Map) {
+        final piStatus = (paymentIntent['status'] as String?)?.toLowerCase();
+        if (piStatus == 'succeeded' || piStatus == 'succeeded') isPaid = true;
+      }
+
+      if (isPaid) {
+        // Vaciar carrito local (usar la referencia ya capturada)
+        try {
+          await cartProvider.vaciarCarrito();
+        } catch (_) {}
+        // Notificar a otras pestañas (web) y al opener para que intenten cerrarse o
+        // actualizarse. La implementación hace no-op fuera de web.
+        try {
+          notifyCheckoutCompleted();
+        } catch (_) {}
+      }
     } catch (e) {
       setState(() {
         _error = 'Error inesperado: $e';
@@ -178,6 +226,20 @@ class _CheckoutSuccessScreenState extends State<CheckoutSuccessScreen> {
                     ElevatedButton(
                       onPressed: _volverHome,
                       child: const Text('Ir al inicio'),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Llevar a mis compras
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/mis-compras',
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryPurple,
+                      ),
+                      child: const Text('Ver mis pedidos'),
                     ),
                   ],
                 ),

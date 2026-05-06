@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../widgets/shared_components.dart';
 import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
+import '../models/product.dart';
+import '../services/api_service.dart';
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 class InstrumentsScreen extends StatefulWidget {
@@ -30,6 +32,15 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
     'Precio: Mayor a Menor',
   ];
 
+  late Future<List<Product>> _productsFuture;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = _apiService.fetchProducts();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -42,21 +53,6 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
       crossAxisCount = 2;
     else if (screenWidth < 1200)
       crossAxisCount = 3;
-
-    var filteredProducts = _instrumentosProducts.where((product) {
-      if (_selectedCategory == 'Todos') return true;
-      return (product['tags'] as List).contains(_selectedCategory);
-    }).toList();
-
-    if (_selectedSort == 'Precio: Menor a Mayor') {
-      filteredProducts.sort(
-        (a, b) => (a['price'] as double).compareTo(b['price'] as double),
-      );
-    } else if (_selectedSort == 'Precio: Mayor a Menor') {
-      filteredProducts.sort(
-        (a, b) => (b['price'] as double).compareTo(a['price'] as double),
-      );
-    }
 
     return BaseLayout(
       child: Padding(
@@ -98,18 +94,48 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                 ],
               ),
 
-            const SizedBox(height: 16),
-            Text(
-              '${filteredProducts.length} producto${filteredProducts.length == 1 ? '' : 's'} encontrado${filteredProducts.length == 1 ? '' : 's'}',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
-            filteredProducts.isEmpty
-                ? Center(
+            FutureBuilder<List<Product>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text('No hay productos disponibles.'),
+                  );
+                }
+
+                // Filtrar solo Instrumentos (id_categoria == '1')
+                var products = snapshot.data!
+                    .where((p) => p.idCategoria == '1')
+                    .toList();
+
+                // Filtro por subcategoría/nombre (ej: 'Guitarras', 'Bajos')
+                if (_selectedCategory != 'Todos') {
+                  products = products
+                      .where(
+                        (p) => p.nombre.toLowerCase().contains(
+                          _selectedCategory.toLowerCase(),
+                        ),
+                      )
+                      .toList();
+                }
+
+                // Ordenamiento
+                if (_selectedSort == 'Precio: Menor a Mayor') {
+                  products.sort((a, b) => a.precio.compareTo(b.precio));
+                } else if (_selectedSort == 'Precio: Mayor a Menor') {
+                  products.sort((a, b) => b.precio.compareTo(a.precio));
+                }
+
+                if (products.isEmpty) {
+                  return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 60),
                       child: Column(
@@ -121,9 +147,9 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                             color: Colors.grey.shade300,
                           ),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'No hay productos en esta categoría',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               color: AppColors.textSecondary,
                             ),
@@ -131,45 +157,50 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
                         ],
                       ),
                     ),
-                  )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemCount: filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final item = filteredProducts[index];
-                      return ProductCard(
-                        title: item['title'],
-                        price: item['price'],
-                        tags: item['tags'],
-                        imageUrl: item['image'],
-                        isSale: item['isSale'],
-                        onDetailsTap: () =>
-                            Navigator.pushNamed(context, '/detalle'),
-                        onAdd: () {
-                          // For demo data we don't have IDs; use title as id
-                          context.read<CartProvider>().agregarProducto(
-                            productoId: item['title'],
-                            nombre: item['title'],
-                            precio: item['price'],
-                            imagenUrl: item['image'],
-                            stockDisponible: 100,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Agregado al carrito'),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                  );
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 0.72,
                   ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final item = products[index];
+                    return ProductCard(
+                      title: item.nombre,
+                      price: item.precio,
+                      tags: item.categoria != null
+                          ? [item.categoria!.nombre]
+                          : [],
+                      imageUrl: item.imageUrl,
+                      isSale: item.estaActivo,
+                      onDetailsTap: () => Navigator.pushNamed(
+                        context,
+                        '/detalle-producto/${item.id}',
+                      ),
+                      onAdd: () {
+                        context.read<CartProvider>().agregarProducto(
+                          productoId: item.id,
+                          nombre: item.nombre,
+                          precio: item.precio,
+                          imagenUrl: item.imageUrl,
+                          stockDisponible: item.inventario,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Agregado al carrito')),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -245,42 +276,4 @@ class _InstrumentsScreenState extends State<InstrumentsScreen> {
   }
 }
 
-final List<Map<String, dynamic>> _instrumentosProducts = [
-  {
-    'title': 'Guitarra Eléctrica Fender',
-    'price': 18500.00,
-    'tags': ['Guitarras', 'Profesional'],
-    'image': 'https://m.media-amazon.com/images/I/61aAV9OZz8L._AC_SY879_.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Batería Acústica Yamaha',
-    'price': 15499.00,
-    'tags': ['Baterías', 'Oferta'],
-    'image':
-        'https://m.media-amazon.com/images/S/aplus-media-library-service-media/e04da6f5-c8dd-43a8-b82a-ef27cb61cec2.__CR0,0,600,600_PT0_SX300_V1___.png',
-    'isSale': true,
-  },
-  {
-    'title': 'Bajo Eléctrico Ibanez',
-    'price': 7200.00,
-    'tags': ['Bajos'],
-    'image': 'https://m.media-amazon.com/images/I/71KHUkwn3WL.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Teclado Korg 61 Teclas',
-    'price': 8200.00,
-    'tags': ['Teclados', 'Oferta'],
-    'image':
-        'https://m.media-amazon.com/images/I/51Pm9zO5QIL._AC_UF350,350_QL80_.jpg',
-    'isSale': true,
-  },
-  {
-    'title': 'Guitarra Acústica Taylor',
-    'price': 9500.00,
-    'tags': ['Guitarras', 'Acústica'],
-    'image': 'https://m.media-amazon.com/images/I/7115TB+TXeL.jpg',
-    'isSale': true,
-  },
-];
+// Static demo products removed — data now loaded from API via ApiService

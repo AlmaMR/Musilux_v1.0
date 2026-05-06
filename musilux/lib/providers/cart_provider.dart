@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+// Web-only: usamos storage events para sincronizar carrito entre pestañas
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/cart_item.dart';
 
-/// Tasa de IVA aplicada al subtotal (México 16 %).
+/// Tasa de IVA aplicada sobre el precio final (México 16 %).
+/// Nota: los precios en la base de datos y la UI incluyen IVA. Aquí calculamos
+/// la porción de IVA incluida para mostrar el desglose.
 const double _kIva = 0.16;
 
 /// Máximo de unidades de un mismo producto por compra.
@@ -35,12 +40,14 @@ class CartProvider extends ChangeNotifier {
 
   // ── Motor de cálculos ──────────────────────────────────────────────────────
 
-  double get subtotal =>
-      _items.fold(0.0, (sum, item) => sum + item.subtotalLinea);
+  // Total con IVA (suma de precios que ya incluyen IVA)
+  double get total => _items.fold(0.0, (sum, item) => sum + item.subtotalLinea);
 
+  /// Subtotal sin impuesto (base): total / (1 + IVA)
+  double get subtotal => total / (1 + _kIva);
+
+  /// Impuesto correspondiente (subtotal * IVA)
   double get impuestos => subtotal * _kIva;
-
-  double get total => subtotal + impuestos;
 
   // ── Inicialización — rehidratación desde SharedPreferences ─────────────────
 
@@ -56,6 +63,21 @@ class CartProvider extends ChangeNotifier {
     } catch (_) {
       // JSON corrompido — empezar con carrito vacío
       await prefs.remove(_kCartKey);
+    }
+
+    // Escuchar cambios en localStorage desde otras pestañas (sólo web)
+    if (kIsWeb) {
+      try {
+        html.window.onStorage.listen((html.StorageEvent e) {
+          if (e.key == 'cart_cleared') {
+            _items.clear();
+            _persistir();
+            notifyListeners();
+          }
+        });
+      } catch (_) {
+        // no-op
+      }
     }
   }
 
@@ -242,6 +264,8 @@ class CartProvider extends ChangeNotifier {
         )
         .toList(),
     'subtotal': subtotal,
+    // Enviamos 'impuestos' como la porción incluida para que el backend y UI
+    // puedan mostrar el desglose. Nota: subtotal ya incluye impuestos.
     'impuestos': impuestos,
     'total': total,
     'direccion_envio': direccionEnvio,

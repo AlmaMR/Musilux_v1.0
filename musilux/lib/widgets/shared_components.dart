@@ -11,6 +11,8 @@ import '../core/app_router.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/payment_service.dart';
 import '../utils/browser_utils.dart';
+import '../services/api_service.dart';
+import '../models/product.dart';
 
 // ==========================================
 // LAYOUT BASE (Header, Footer, Drawers)
@@ -952,7 +954,7 @@ class _CartResumen extends StatelessWidget {
             valor: cart.subtotal,
           ),
           const SizedBox(height: 4),
-          _LineaCalculo(label: 'IVA (16 %)', valor: cart.impuestos),
+          _LineaCalculo(label: 'IVA (16 %) — incluido', valor: cart.impuestos),
           const Divider(height: 20),
           _LineaCalculo(
             label: 'Total',
@@ -979,9 +981,206 @@ class _CartResumen extends StatelessWidget {
 
                 // Web flow: use Stripe Checkout (hosted) since PaymentSheet is not supported
                 if (kIsWeb) {
-                  final payload = cart.buildOrdenPayload('');
-                  // Backend expects an 'amount' numeric field (total), añádelo explícitamente
+                  // Pedir dirección de envío con formulario estructurado
+                  final nombreCtrl = TextEditingController();
+                  final apellidoCtrl = TextEditingController();
+                  final calleCtrl = TextEditingController();
+                  final aptoCtrl = TextEditingController();
+                  final ciudadCtrl = TextEditingController();
+                  final estadoCtrl = TextEditingController();
+                  final postalCtrl = TextEditingController();
+                  final telefonoCtrl = TextEditingController();
+                  String paisValue = 'Mexico';
+
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => StatefulBuilder(
+                      builder: (ctx2, setState2) {
+                        return AlertDialog(
+                          title: const Text('Dirección de envío'),
+                          content: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: nombreCtrl,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Nombre',
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: apellidoCtrl,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Apellido',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: calleCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Calle y número',
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: aptoCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Apto / Colonia (opcional)',
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: ciudadCtrl,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Ciudad',
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: estadoCtrl,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Estado / Provincia',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: postalCtrl,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Código postal',
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: DropdownButtonFormField<String>(
+                                        value: paisValue,
+                                        items: const [
+                                          DropdownMenuItem(
+                                            value: 'Mexico',
+                                            child: Text('Mexico'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'Peru',
+                                            child: Text('Peru'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'USA',
+                                            child: Text('USA'),
+                                          ),
+                                        ],
+                                        onChanged: (v) => setState2(
+                                          () => paisValue = v ?? paisValue,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          labelText: 'País',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: telefonoCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Teléfono (opcional)',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx2, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                // Validación mínima: campos obligatorios
+                                if (nombreCtrl.text.trim().isEmpty ||
+                                    calleCtrl.text.trim().isEmpty ||
+                                    ciudadCtrl.text.trim().isEmpty ||
+                                    postalCtrl.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(ctx2).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Completa Nombre, Calle, Ciudad y Código postal',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                Navigator.pop(ctx2, true);
+                              },
+                              child: const Text('Continuar'),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  );
+
+                  if (ok != true) {
+                    scaffold.hideCurrentSnackBar();
+                    scaffold.showSnackBar(
+                      const SnackBar(
+                        content: Text('Pago cancelado: dirección requerida'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Construir dirección combinada para persistir en DB
+                  final parts = <String>[];
+                  final nombre = nombreCtrl.text.trim();
+                  final apellido = apellidoCtrl.text.trim();
+                  final calle = calleCtrl.text.trim();
+                  if (calle.isNotEmpty) parts.add(calle);
+                  final apto = aptoCtrl.text.trim();
+                  if (apto.isNotEmpty) parts.add(apto);
+                  final ciudad = ciudadCtrl.text.trim();
+                  final estado = estadoCtrl.text.trim();
+                  final postal = postalCtrl.text.trim();
+                  final pais = paisValue;
+                  final telefono = telefonoCtrl.text.trim();
+                  final locale = [
+                    if (ciudad.isNotEmpty) ciudad,
+                    if (estado.isNotEmpty) estado,
+                    if (postal.isNotEmpty) postal,
+                    if (pais.isNotEmpty) pais,
+                  ].join(', ');
+                  if (locale.isNotEmpty) parts.add(locale);
+                  if (telefono.isNotEmpty) parts.add('Tel: $telefono');
+
+                  final direccionEnvio = parts.join(' • ');
+
+                  final payload = cart.buildOrdenPayload(direccionEnvio);
                   payload['amount'] = cart.total;
+                  payload['direccion_envio'] = direccionEnvio;
+                  // Añadir campos individuales para que el backend construya la guia_envio
+                  payload['nombre'] = nombre;
+                  payload['apellido'] = apellido;
+                  payload['telefono'] = telefono;
+
                   final resp = await paymentService.createCheckoutSessionUrl(
                     payload,
                   );
@@ -1342,21 +1541,13 @@ class ProductCard extends StatelessWidget {
 // DELEGADO DEL BUSCADOR (SearchDelegate)
 // ==========================================
 class ProductSearchDelegate extends SearchDelegate<String> {
-  // Simulación de productos en la tienda
-  final List<String> products = [
-    'Batería Acústica Yamaha',
-    'Controlador DJ Pioneer',
-    'Guitarra Acústica Taylor',
-    'Sliver - Nirvana (Vinilo)',
-    'Teclado Korg 61 Teclas',
-    'Cabeza Móvil Beam 230W',
-    'Láser RGB Animación',
-    'Máquina de Humo 1500W',
-    'Barra LED Ultravioleta UV',
-    'Par LED 54x3W RGBW',
-    'Controlador DMX 512',
-    'Luz Estroboscópica 1000W',
-  ];
+  // Load product names dynamically from the backend to avoid hardcoded lists.
+  final ApiService _apiService = ApiService();
+  // Cache by query to avoid repeated network calls
+  final Map<String, List<String>> _cache = {};
+  Future<List<String>>? _productsFuture;
+  // Simple debounce token
+  DateTime? _lastQueryTime;
 
   @override
   String get searchFieldLabel => 'Buscar en Musilux...';
@@ -1386,28 +1577,89 @@ class ProductSearchDelegate extends SearchDelegate<String> {
 
   @override
   Widget buildResults(BuildContext context) {
-    final results = products
-        .where((p) => p.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    if (results.isEmpty) {
-      return Center(
-        child: Text(
-          'No se encontraron resultados para "$query"',
-          style: const TextStyle(fontSize: 16),
-        ),
+    // If query cached, return immediately
+    if (query.isNotEmpty && _cache.containsKey(query.toLowerCase())) {
+      final results = _cache[query.toLowerCase()]!;
+      return ListView.builder(
+        itemCount: results.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            leading: const Icon(
+              Icons.music_note,
+              color: AppColors.primaryPurple,
+            ),
+            title: Text(results[index]),
+            onTap: () {
+              close(context, results[index]);
+              Navigator.pushNamed(context, '/producto_detalle');
+            },
+          );
+        },
       );
     }
 
-    return ListView.builder(
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          leading: const Icon(Icons.music_note, color: AppColors.primaryPurple),
-          title: Text(results[index]),
-          onTap: () {
-            close(context, results[index]);
-            Navigator.pushNamed(context, '/producto_detalle');
+    // Debounce: only query if last change was > 300ms ago
+    _lastQueryTime = DateTime.now();
+    final currentQueryTime = _lastQueryTime;
+
+    _productsFuture = Future.delayed(const Duration(milliseconds: 300)).then((
+      _,
+    ) async {
+      // if another query happened in the meantime, abort this fetch
+      if (currentQueryTime != _lastQueryTime) return <String>[];
+
+      try {
+        final List<Product> products = await _apiService.fetchProducts(
+          search: query,
+          perPage: 20,
+        );
+        final names = products.map((p) => p.nombre).toList();
+        if (query.isNotEmpty) {
+          _cache[query.toLowerCase()] = names;
+        }
+        return names;
+      } catch (e) {
+        // on error, return empty list — UI will show no results
+        return <String>[];
+      }
+    });
+
+    return FutureBuilder<List<String>>(
+      future: _productsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error cargando resultados: ${snapshot.error}'),
+          );
+        }
+
+        final results = snapshot.data ?? [];
+        if (results.isEmpty) {
+          return Center(
+            child: Text(
+              'No se encontraron resultados para "$query"',
+              style: const TextStyle(fontSize: 16),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: results.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              leading: const Icon(
+                Icons.music_note,
+                color: AppColors.primaryPurple,
+              ),
+              title: Text(results[index]),
+              onTap: () {
+                close(context, results[index]);
+                Navigator.pushNamed(context, '/producto_detalle');
+              },
+            );
           },
         );
       },
@@ -1416,21 +1668,48 @@ class ProductSearchDelegate extends SearchDelegate<String> {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    final suggestions = query.isEmpty
-        ? ['Guitarra', 'Luces LED', 'Vinilos Rock']
-        : products
-              .where((p) => p.toLowerCase().contains(query.toLowerCase()))
-              .toList();
+    _productsFuture ??= _apiService.fetchProducts().then(
+      (list) => list.map((p) => p.nombre).toList(),
+    );
 
-    return ListView.builder(
-      itemCount: suggestions.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          leading: const Icon(Icons.search, color: Colors.grey),
-          title: Text(suggestions[index]),
-          onTap: () {
-            query = suggestions[index];
-            showResults(context);
+    return FutureBuilder<List<String>>(
+      future: _productsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // While loading, show a small loader or default suggestions
+          if (query.isEmpty) {
+            return ListView(
+              children: const [
+                ListTile(
+                  leading: Icon(Icons.search, color: Colors.grey),
+                  title: Text('Cargando sugerencias...'),
+                ),
+              ],
+            );
+          }
+          return const Center(child: CircularProgressIndicator());
+        }
+        final products = snapshot.data ?? [];
+
+        final suggestions = query.isEmpty
+            ? (products.isNotEmpty
+                  ? products.take(6).toList()
+                  : ['Guitarra', 'Luces LED', 'Vinilos Rock'])
+            : products
+                  .where((p) => p.toLowerCase().contains(query.toLowerCase()))
+                  .toList();
+
+        return ListView.builder(
+          itemCount: suggestions.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              leading: const Icon(Icons.search, color: Colors.grey),
+              title: Text(suggestions[index]),
+              onTap: () {
+                query = suggestions[index];
+                showResults(context);
+              },
+            );
           },
         );
       },

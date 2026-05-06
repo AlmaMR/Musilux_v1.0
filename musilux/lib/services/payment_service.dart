@@ -115,10 +115,18 @@ class PaymentService {
         headers['Authorization'] = 'Bearer $token';
       }
 
+      // Añadir el origin actual del navegador para que el backend pueda
+      // construir success_url correctamente (incluyendo puerto dinámico).
+      final payloadWithFrontend = Map<String, dynamic>.from(payload);
+      try {
+        // Uri.base.origin funciona en web y contiene scheme://host:port
+        payloadWithFrontend['frontend'] = Uri.base.origin;
+      } catch (_) {}
+
       final resp = await http.post(
         uri,
         headers: headers,
-        body: jsonEncode(payload),
+        body: jsonEncode(payloadWithFrontend),
       );
 
       if (resp.statusCode != 200) {

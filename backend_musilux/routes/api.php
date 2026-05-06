@@ -152,13 +152,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // Checkout / Pagos (Stripe)
     Route::post('/checkout/create-payment-intent', [PaymentController::class, 'createPaymentIntent']);
     Route::post('/checkout/create-checkout-session', [PaymentController::class, 'createCheckoutSession']);
-    Route::get('/checkout/session/{id}', [PaymentController::class, 'getCheckoutSession']);
     // Mis pedidos (conteo para el perfil)
     Route::get('/pedidos/mis/count', [PaymentController::class, 'myOrdersCount']);
+    // Lista de pedidos del usuario y detalle
+    Route::get('/pedidos/mis', [PaymentController::class, 'myOrdersList']);
+    Route::get('/pedidos/mis/{id}', [PaymentController::class, 'myOrderShow']);
 });
 
 // Stripe webhook (public)
 Route::post('/stripe/webhook', [PaymentController::class, 'webhook']);
+
+// Información de sesión de Checkout (pública) - permite que el frontend web
+// recupere el estado de la sesión tras la redirección desde Stripe.
+Route::get('/checkout/session/{id}', [PaymentController::class, 'getCheckoutSession']);
 
 // ──────────────────────────────────────────────
 // Debug (solo desarrollo — eliminar en producción)
