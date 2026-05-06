@@ -293,12 +293,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: EdgeInsets.symmetric(vertical: 20),
           child: Divider(),
         ),
-        _buildInfoRow(
-          Icons.shopping_bag_outlined,
-          'Mis pedidos',
-          _misPedidosCount == null
-              ? 'Cargando...'
-              : '${_misPedidosCount!} pedidos realizados',
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).pushNamed('/mis-compras');
+            },
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: _buildInfoRow(
+                Icons.shopping_bag_outlined,
+                'Mis pedidos',
+                _misPedidosCount == null
+                    ? 'Cargando...'
+                    : '${_misPedidosCount!} pedidos realizados',
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 30),
 
@@ -309,9 +321,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => ProfileEditScreen(
-                    currentUser: _currentUser,
-                  ),
+                  builder: (context) =>
+                      ProfileEditScreen(currentUser: _currentUser),
                 ),
               );
             },
@@ -326,7 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 15),
-////////////////////////////////////////
+        ////////////////////////////////////////
         const SizedBox(height: 40),
         SizedBox(
           width: double.infinity,
