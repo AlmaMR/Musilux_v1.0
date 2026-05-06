@@ -1,9 +1,17 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import '../features/catalog/data/product_model.dart';
 import '../features/catalog/data/api_service.dart';
+import '../services/spotify_service.dart';
+import '../services/firebase_storage_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PANTALLA PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
 
@@ -18,39 +26,42 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshProducts();
+    // initState: asignación directa sin setState (el widget no está montado aún)
+    _productsFuture = _productService.getProducts();
   }
 
   void _refreshProducts() {
-    setState(() {
-      _productsFuture = _productService.getProducts();
-    });
+    setState(() => _productsFuture = _productService.getProducts());
   }
 
   void _showProductForm({ProductModel? product}) {
     showDialog(
       context: context,
-      builder: (context) => ProductFormDialog(
+      barrierDismissible: false,
+      builder: (ctx) => ProductFormDialog(
         product: product,
         onSave: (newProduct) async {
-          bool success;
-          if (product == null) {
-            success = await _productService.createProduct(newProduct);
-          } else {
-            success = await _productService.updateProduct(newProduct);
-          }
+          final bool success = product == null
+              ? await _productService.createProduct(newProduct)
+              : await _productService.updateProduct(newProduct);
 
-          if (success) {
-            if (!mounted) return;
-            Navigator.pop(context);
-            _refreshProducts();
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Operación exitosa')));
-          } else {
-            if (!mounted) return;
+          if (!ctx.mounted) return;
+          Navigator.pop(ctx);
+
+          // Usamos el contexto del Scaffold padre (sigue montado tras cerrar el diálogo)
+          _refreshProducts();
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Error al guardar el producto')),
+              SnackBar(
+                content: Text(
+                  success
+                      ? product == null
+                            ? 'Producto creado correctamente'
+                            : 'Producto actualizado correctamente'
+                      : 'Error al guardar el producto. Revisa la consola.',
+                ),
+                backgroundColor: success ? Colors.green : Colors.red,
+              ),
             );
           }
         },
@@ -58,114 +69,346 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
   }
 
-  void _deleteProduct(String id) async {
-    bool confirm =
-        await showDialog(
+  Future<void> _deleteProduct(String id, String nombre) async {
+    final confirm =
+        await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Confirmar'),
-            content: const Text('¿Estás seguro de eliminar este producto?'),
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('Eliminar producto'),
+              ],
+            ),
+            content: Text(
+              '¿Eliminar "$nombre"? Esta acción no se puede deshacer.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Cancelar'),
               ),
-              TextButton(
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
+                child: const Text('Eliminar'),
               ),
             ],
           ),
         ) ??
         false;
 
-    if (confirm) {
-      bool success = await _productService.deleteProduct(id);
-      if (success) {
-        if (!mounted) return;
-        _refreshProducts();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Producto eliminado')));
-      }
+    if (!confirm) return;
+
+    final success = await _productService.deleteProduct(id);
+    if (!mounted) return;
+    if (success) {
+      _refreshProducts();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Producto eliminado'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // BaseLayout usa SingleChildScrollView internamente → restricciones verticales
+    // ilimitadas → NO usar Expanded ni ListView sin shrinkWrap aquí.
     return BaseLayout(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Header ────────────────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryPurple,
+                  AppColors.primaryPurple.withValues(alpha: 0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+            child: Row(
               children: [
-                const Text(
-                  'Administración de Productos',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Administración de Productos',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Gestiona el catálogo de Musilux',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                ElevatedButton.icon(
+                const SizedBox(width: 12),
+                FilledButton.icon(
                   onPressed: () => _showProductForm(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Nuevo Producto'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Nuevo'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primaryPurple,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            FutureBuilder<List<ProductModel>>(
-              future: _productsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text('No hay productos registrados.'),
-                  );
-                }
+          ),
 
-                final products = snapshot.data!;
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: products.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.primaryPurple.withValues(
-                          alpha: 0.1,
-                        ),
-                        child: Text(product.tipoProducto[0].toUpperCase()),
-                      ),
-                      title: Text(product.nombre),
-                      subtitle: Text(
-                        '\$${product.precio} - Stock: ${product.inventario}',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showProductForm(product: product),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteProduct(product.id!),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+          // ── Lista de productos ─────────────────────────────────────────────
+          FutureBuilder<List<ProductModel>>(
+            future: _productsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(child: CircularProgressIndicator()),
                 );
-              },
+              }
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 40,
+                    horizontal: 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red.shade300,
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Error: ${snapshot.error}'),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _refreshProducts,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 60,
+                    horizontal: 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay productos registrados',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: () => _showProductForm(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Agregar primer producto'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final products = snapshot.data!;
+              // shrinkWrap + NeverScrollableScrollPhysics porque el scroll
+              // externo ya lo maneja BaseLayout (SingleChildScrollView).
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: products.length,
+                itemBuilder: (context, index) => _ProductCard(
+                  product: products[index],
+                  onEdit: () => _showProductForm(product: products[index]),
+                  onDelete: () => _deleteProduct(
+                    products[index].id!,
+                    products[index].nombre,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CARD DE PRODUCTO
+// ─────────────────────────────────────────────────────────────────────────────
+class _ProductCard extends StatelessWidget {
+  final ProductModel product;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ProductCard({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  Color _tipoColor() {
+    switch (product.tipoProducto) {
+      case 'digital':
+        return Colors.blue;
+      case 'servicio':
+        return Colors.orange;
+      default:
+        return Colors.green; // fisico
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Imagen
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: product.imagenUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: product.imagenUrl!,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        width: 64,
+                        height: 64,
+                        color: Colors.grey.shade200,
+                        child: const Icon(
+                          Icons.image_outlined,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) =>
+                          _PlaceholderAvatar(product: product),
+                    )
+                  : _PlaceholderAvatar(product: product),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.nombre,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        '\$${product.precio.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: AppColors.primaryPurple,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _tipoColor().withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          product.tipoProducto,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _tipoColor(),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Stock: ${product.inventario}  •  ${product.estaActivo ? "Activo" : "Inactivo"}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+
+            // Acciones
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.primaryPurple,
+                  ),
+                  tooltip: 'Editar',
+                  onPressed: onEdit,
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  tooltip: 'Eliminar',
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
           ],
         ),
@@ -174,9 +417,36 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   }
 }
 
+class _PlaceholderAvatar extends StatelessWidget {
+  final ProductModel product;
+  const _PlaceholderAvatar({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      height: 64,
+      color: AppColors.primaryPurple.withValues(alpha: 0.1),
+      child: Center(
+        child: Text(
+          product.nombre.isNotEmpty ? product.nombre[0].toUpperCase() : '?',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryPurple,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIÁLOGO DE FORMULARIO
+// ─────────────────────────────────────────────────────────────────────────────
 class ProductFormDialog extends StatefulWidget {
   final ProductModel? product;
-  final Function(ProductModel) onSave;
+  final Future<void> Function(ProductModel) onSave;
 
   const ProductFormDialog({super.key, this.product, required this.onSave});
 
@@ -192,8 +462,24 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late TextEditingController _precioCtrl;
   late TextEditingController _invCtrl;
   late TextEditingController _bpmCtrl;
+  final TextEditingController _spotifySearchCtrl = TextEditingController();
+
   String _tipoProducto = 'fisico';
+  int _idCategoria = 1;
   bool _estaActivo = true;
+
+  SpotifyTrack? _selectedTrack;
+  List<SpotifyTrack> _spotifyResults = [];
+  bool _isSearchingSpotify = false;
+
+  XFile? _pickedImage;
+  Uint8List? _pickedImageBytes;
+  String? _existingImageUrl;
+  bool _isUploadingImage = false;
+  bool _isSaving = false;
+
+  final SpotifyService _spotifyService = SpotifyService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -206,114 +492,868 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _invCtrl = TextEditingController(text: p?.inventario.toString() ?? '');
     _bpmCtrl = TextEditingController(text: p?.bpm?.toString() ?? '');
     _tipoProducto = p?.tipoProducto ?? 'fisico';
+    _idCategoria = p?.idCategoria ?? 1;
     _estaActivo = p?.estaActivo ?? true;
+    _existingImageUrl = p?.imagenUrl;
+
+    if (p?.spotifyTrackId != null) {
+      _selectedTrack = SpotifyTrack(
+        id: p!.spotifyTrackId!,
+        name: p.spotifyTrackName ?? '',
+        artistName: p.spotifyArtistName ?? '',
+        albumName: '',
+        previewUrl: p.spotifyPreviewUrl,
+        albumImageUrl: p.spotifyAlbumImageUrl,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _slugCtrl.dispose();
+    _descCtrl.dispose();
+    _precioCtrl.dispose();
+    _invCtrl.dispose();
+    _bpmCtrl.dispose();
+    _spotifySearchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 88,
+    );
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _pickedImage = picked;
+        _pickedImageBytes = bytes;
+        _existingImageUrl = null;
+      });
+    }
+  }
+
+  Future<void> _searchSpotify() async {
+    final query = _spotifySearchCtrl.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _isSearchingSpotify = true;
+      _spotifyResults = [];
+    });
+    try {
+      final results = await _spotifyService.searchTracks(query);
+      if (mounted) setState(() => _spotifyResults = results);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al buscar en Spotify')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSearchingSpotify = false);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSaving = true;
+      _isUploadingImage = _pickedImage != null;
+    });
+
+    String? finalImageUrl = _existingImageUrl;
+
+    if (_pickedImage != null) {
+      try {
+        final folder =
+            widget.product?.id ??
+            'nuevo-${DateTime.now().millisecondsSinceEpoch}';
+        finalImageUrl = await FirebaseStorageService.uploadProductImage(
+          _pickedImage!,
+          folder,
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al subir imagen: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() {
+          _isSaving = false;
+          _isUploadingImage = false;
+        });
+        return;
+      }
+    }
+
+    setState(() => _isUploadingImage = false);
+
+    final product = ProductModel(
+      id: widget.product?.id,
+      idCategoria: _idCategoria,
+      nombre: _nombreCtrl.text.trim(),
+      slug: _slugCtrl.text.trim(),
+      descripcion: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      tipoProducto: _tipoProducto,
+      precio: double.tryParse(_precioCtrl.text) ?? 0,
+      inventario: int.tryParse(_invCtrl.text) ?? 0,
+      bpm: int.tryParse(_bpmCtrl.text),
+      estaActivo: _estaActivo,
+      imagenUrl: finalImageUrl,
+      spotifyTrackId: _selectedTrack?.id,
+      spotifyTrackName: _selectedTrack?.name,
+      spotifyArtistName: _selectedTrack?.artistName,
+      spotifyPreviewUrl: _selectedTrack?.previewUrl,
+      spotifyAlbumImageUrl: _selectedTrack?.albumImageUrl,
+    );
+
+    await widget.onSave(product);
+    if (mounted) setState(() => _isSaving = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        widget.product == null ? 'Nuevo Producto' : 'Editar Producto',
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nombreCtrl,
-                decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                onChanged: (val) {
-                  if (widget.product == null) {
-                    // Generar slug simple automáticamente al crear
-                    _slugCtrl.text = val.toLowerCase().replaceAll(' ', '-');
-                  }
-                },
-              ),
-              TextFormField(
-                controller: _slugCtrl,
-                decoration: const InputDecoration(labelText: 'Slug'),
-                validator: (v) => v!.isEmpty ? 'Requerido' : null,
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: _tipoProducto,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Producto',
+    final isNew = widget.product == null;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Header del diálogo ─────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryPurple,
+                    AppColors.primaryPurple.withValues(alpha: 0.8),
+                  ],
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'fisico', child: Text('Físico')),
-                  DropdownMenuItem(value: 'digital', child: Text('Digital')),
-                  DropdownMenuItem(value: 'servicio', child: Text('Servicio')),
-                ],
-                onChanged: (v) => setState(() => _tipoProducto = v!),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
-              Row(
+              child: Row(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _precioCtrl,
-                      decoration: const InputDecoration(labelText: 'Precio'),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                    ),
+                  Icon(
+                    isNew ? Icons.add_box_outlined : Icons.edit_outlined,
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _invCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Inventario',
+                  Text(
+                    isNew ? 'Nuevo Producto' : 'Editar Producto',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
+                    tooltip: 'Cerrar',
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Contenido del formulario ────────────────────────────────────
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Sección: Información básica ─────────────────────
+                      _SectionHeader(
+                        icon: Icons.info_outline,
+                        label: 'Información básica',
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                      const SizedBox(height: 12),
+
+                      _StyledField(
+                        controller: _nombreCtrl,
+                        label: 'Nombre del producto',
+                        icon: Icons.label_outline,
+                        validator: (v) =>
+                            v!.trim().isEmpty ? 'Requerido' : null,
+                        onChanged: (val) {
+                          if (isNew) {
+                            _slugCtrl.text = val
+                                .toLowerCase()
+                                .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+                                .trim()
+                                .replaceAll(' ', '-');
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      _StyledField(
+                        controller: _slugCtrl,
+                        label: 'Slug (URL)',
+                        icon: Icons.link,
+                        helperText: 'Generado automáticamente por el servidor',
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Categoría
+                      DropdownButtonFormField<int>(
+                        value: _idCategoria,
+                        decoration: InputDecoration(
+                          labelText: 'Categoría',
+                          prefixIcon: const Icon(Icons.folder_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 1,
+                            child: Text('Instrumentos'),
+                          ),
+                          DropdownMenuItem(
+                            value: 2,
+                            child: Text('Iluminación'),
+                          ),
+                          DropdownMenuItem(value: 3, child: Text('Vinilos')),
+                        ],
+                        onChanged: (v) => setState(() => _idCategoria = v!),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Tipo de producto
+                      DropdownButtonFormField<String>(
+                        value: _tipoProducto,
+                        decoration: InputDecoration(
+                          labelText: 'Tipo de producto',
+                          prefixIcon: const Icon(Icons.category_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'fisico',
+                            child: Text('Físico (vinilo, instrumento)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'digital',
+                            child: Text('Digital (audio/descarga)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'servicio',
+                            child: Text('Servicio'),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _tipoProducto = v!),
+                      ),
+                      const SizedBox(height: 12),
+
+                      _StyledField(
+                        controller: _descCtrl,
+                        label: 'Descripción',
+                        icon: Icons.notes,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Sección: Precio y stock ─────────────────────────
+                      _SectionHeader(
+                        icon: Icons.attach_money,
+                        label: 'Precio y stock',
+                      ),
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StyledField(
+                              controller: _precioCtrl,
+                              label: 'Precio (\$)',
+                              icon: Icons.attach_money,
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v!.isEmpty) return 'Requerido';
+                                if (double.tryParse(v) == null)
+                                  return 'Número inválido';
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StyledField(
+                              controller: _invCtrl,
+                              label: 'Inventario',
+                              icon: Icons.inventory_outlined,
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v!.isEmpty) return 'Requerido';
+                                if (int.tryParse(v) == null)
+                                  return 'Número inválido';
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      _StyledField(
+                        controller: _bpmCtrl,
+                        label: 'BPM (opcional)',
+                        icon: Icons.speed,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Toggle activo
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 2,
+                          ),
+                          title: const Text('Producto activo'),
+                          subtitle: Text(
+                            _estaActivo
+                                ? 'Visible en el catálogo'
+                                : 'Oculto del catálogo',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _estaActivo ? Colors.green : Colors.grey,
+                            ),
+                          ),
+                          value: _estaActivo,
+                          activeColor: AppColors.primaryPurple,
+                          onChanged: (v) => setState(() => _estaActivo = v),
+                        ),
+                      ),
+
+                      // ── Sección: Imagen ─────────────────────────────────
+                      const SizedBox(height: 20),
+                      _SectionHeader(
+                        icon: Icons.image_outlined,
+                        label: 'Imagen del producto',
+                      ),
+                      const SizedBox(height: 12),
+
+                      _ImagePickerSection(
+                        pickedImageBytes: _pickedImageBytes,
+                        existingImageUrl: _existingImageUrl,
+                        isUploading: _isUploadingImage,
+                        onPick: _pickImage,
+                        onRemove: () => setState(() {
+                          _pickedImage = null;
+                          _pickedImageBytes = null;
+                          _existingImageUrl = null;
+                        }),
+                      ),
+
+                      // ── Sección: Spotify ────────────────────────────────
+                      const SizedBox(height: 20),
+                      _SectionHeader(
+                        icon: Icons.music_note_outlined,
+                        label: 'Vincular track de Spotify',
+                      ),
+                      const SizedBox(height: 12),
+
+                      if (_selectedTrack != null) ...[
+                        _SelectedTrackCard(
+                          track: _selectedTrack!,
+                          onRemove: () => setState(() => _selectedTrack = null),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _spotifySearchCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Buscar canción en Spotify...',
+                                prefixIcon: const Icon(Icons.search),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                              ),
+                              onFieldSubmitted: (_) => _searchSpotify(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            icon: _isSearchingSpotify
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.search),
+                            onPressed: _isSearchingSpotify
+                                ? null
+                                : _searchSpotify,
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.primaryPurple,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (_spotifyResults.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 220),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade200),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: _spotifyResults.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (_, i) {
+                                final track = _spotifyResults[i];
+                                final isSelected =
+                                    _selectedTrack?.id == track.id;
+                                return ListTile(
+                                  dense: true,
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: track.albumImageUrl != null
+                                        ? Image.network(
+                                            track.albumImageUrl!,
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                const Icon(Icons.music_note),
+                                          )
+                                        : const Icon(Icons.music_note),
+                                  ),
+                                  title: Text(
+                                    track.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    track.artistName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                        )
+                                      : null,
+                                  tileColor: isSelected
+                                      ? Colors.green.withValues(alpha: 0.06)
+                                      : null,
+                                  onTap: () => setState(() {
+                                    _selectedTrack = track;
+                                    _spotifyResults = [];
+                                    _spotifySearchCtrl.clear();
+                                  }),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Footer con botones ──────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: _isSaving ? null : _handleSave,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(isNew ? Icons.add : Icons.save),
+                    label: Text(
+                      _isUploadingImage
+                          ? 'Subiendo imagen...'
+                          : _isSaving
+                          ? 'Guardando...'
+                          : isNew
+                          ? 'Crear producto'
+                          : 'Guardar cambios',
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primaryPurple,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
               ),
-              TextFormField(
-                controller: _bpmCtrl,
-                decoration: const InputDecoration(labelText: 'BPM (Opcional)'),
-                keyboardType: TextInputType.number,
-              ),
-              TextFormField(
-                controller: _descCtrl,
-                decoration: const InputDecoration(labelText: 'Descripción'),
-                maxLines: 2,
-              ),
-              SwitchListTile(
-                title: const Text('Activo'),
-                value: _estaActivo,
-                onChanged: (v) => setState(() => _estaActivo = v),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDGETS AUXILIARES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Encabezado de sección dentro del formulario.
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _SectionHeader({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primaryPurple),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.primaryPurple,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Divider(color: AppColors.primaryPurple.withValues(alpha: 0.2)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Campo de texto con estilo uniforme.
+class _StyledField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final int maxLines;
+  final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
+  final void Function(String)? onChanged;
+  final String? helperText;
+
+  const _StyledField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.maxLines = 1,
+    this.keyboardType,
+    this.validator,
+    this.onChanged,
+    this.helperText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helperText,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+    );
+  }
+}
+
+/// Track de Spotify seleccionado con botón para quitar.
+class _SelectedTrackCard extends StatelessWidget {
+  final SpotifyTrack track;
+  final VoidCallback onRemove;
+
+  const _SelectedTrackCard({required this.track, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.06),
+        border: Border.all(color: Colors.green.shade200),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ListTile(
+        dense: true,
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: track.albumImageUrl != null
+              ? Image.network(
+                  track.albumImageUrl!,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.music_note),
+                )
+              : const Icon(Icons.music_note, color: Colors.green),
+        ),
+        title: Text(
+          track.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        subtitle: Text(
+          track.artistName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: SizedBox(
+          width: 56,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 16),
+              const SizedBox(width: 2),
+              InkWell(
+                onTap: onRemove,
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close, color: Colors.red, size: 16),
+                ),
               ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+    );
+  }
+}
+
+/// Sección de imagen: muestra preview o botón de selección.
+class _ImagePickerSection extends StatelessWidget {
+  final Uint8List? pickedImageBytes;
+  final String? existingImageUrl;
+  final bool isUploading;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  const _ImagePickerSection({
+    required this.pickedImageBytes,
+    required this.existingImageUrl,
+    required this.isUploading,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Imagen nueva seleccionada localmente
+    if (pickedImageBytes != null) {
+      return _ImagePreview(
+        child: Image.memory(
+          pickedImageBytes!,
+          height: 160,
+          width: double.infinity,
+          fit: BoxFit.cover,
         ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              final newProduct = ProductModel(
-                id: widget.product?.id,
-                nombre: _nombreCtrl.text,
-                slug: _slugCtrl.text,
-                descripcion: _descCtrl.text,
-                tipoProducto: _tipoProducto,
-                precio: double.parse(_precioCtrl.text),
-                inventario: int.parse(_invCtrl.text),
-                bpm: int.tryParse(_bpmCtrl.text),
-                estaActivo: _estaActivo,
-              );
-              widget.onSave(newProduct);
-            }
-          },
-          child: const Text('Guardar'),
+        onRemove: onRemove,
+      );
+    }
+
+    // URL existente en Firebase
+    if (existingImageUrl != null) {
+      return _ImagePreview(
+        child: CachedNetworkImage(
+          imageUrl: existingImageUrl!,
+          height: 160,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (_, __) =>
+              const Center(child: CircularProgressIndicator()),
+          errorWidget: (_, __, ___) => Container(
+            height: 160,
+            color: Colors.grey.shade200,
+            child: const Icon(Icons.broken_image, color: Colors.grey),
+          ),
+        ),
+        onRemove: onRemove,
+      );
+    }
+
+    // Sin imagen — área de selección moderna con borde punteado
+    return GestureDetector(
+      onTap: isUploading ? null : onPick,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 130,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isUploading ? Colors.grey.shade300 : Colors.grey.shade400,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: isUploading ? Colors.grey.shade100 : Colors.grey.shade50,
+        ),
+        child: isUploading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 32,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Toca para seleccionar imagen',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'PNG, JPG — máx. 5 MB',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Wrapper de preview de imagen con botón de eliminar superpuesto.
+class _ImagePreview extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onRemove;
+
+  const _ImagePreview({required this.child, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.topRight,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(height: 160, width: double.infinity, child: child),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(4),
+          child: CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.black54,
+            child: IconButton(
+              icon: const Icon(Icons.close, size: 16, color: Colors.white),
+              onPressed: onRemove,
+              padding: EdgeInsets.zero,
+            ),
+          ),
         ),
       ],
     );

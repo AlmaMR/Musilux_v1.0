@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/product.dart';
+import '../services/api_service.dart';
+import 'package:provider/provider.dart';
 import '../widgets/shared_components.dart';
+import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 
 class VinylsScreen extends StatefulWidget {
@@ -12,6 +16,9 @@ class VinylsScreen extends StatefulWidget {
 class _VinylsScreenState extends State<VinylsScreen> {
   String _selectedCategory = 'Todos';
   String _selectedSort = 'Recomendados';
+
+  late Future<List<Product>> _productsFuture;
+  final ApiService _apiService = ApiService();
 
   final List<String> _categories = [
     'Todos',
@@ -32,6 +39,12 @@ class _VinylsScreenState extends State<VinylsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _productsFuture = _apiService.fetchProducts();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 800;
@@ -43,21 +56,6 @@ class _VinylsScreenState extends State<VinylsScreen> {
       crossAxisCount = 2;
     } else if (screenWidth < 1200) {
       crossAxisCount = 3;
-    }
-
-    var filteredProducts = _vinilosProducts.where((product) {
-      if (_selectedCategory == 'Todos') return true;
-      return (product['tags'] as List).contains(_selectedCategory);
-    }).toList();
-
-    if (_selectedSort == 'Precio: Menor a Mayor') {
-      filteredProducts.sort(
-        (a, b) => (a['price'] as double).compareTo(b['price'] as double),
-      );
-    } else if (_selectedSort == 'Precio: Mayor a Menor') {
-      filteredProducts.sort(
-        (a, b) => (b['price'] as double).compareTo(a['price'] as double),
-      );
     }
 
     return BaseLayout(
@@ -102,39 +100,113 @@ class _VinylsScreenState extends State<VinylsScreen> {
 
             const SizedBox(height: 30),
 
-            filteredProducts.isEmpty
-                ? const Center(
+            FutureBuilder<List<Product>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text('No hay discos disponibles.'),
+                  );
+                }
+
+                // Filtrar solo Vinilos (idCategoria == '3')
+                var products = snapshot.data!
+                    .where((p) => p.idCategoria == '3')
+                    .toList();
+
+                // Filtro por género (busca en nombre del producto)
+                if (_selectedCategory != 'Todos') {
+                  products = products
+                      .where(
+                        (p) => p.nombre.toLowerCase().contains(
+                          _selectedCategory.toLowerCase(),
+                        ),
+                      )
+                      .toList();
+                }
+
+                // Ordenamiento
+                if (_selectedSort == 'Precio: Menor a Mayor') {
+                  products.sort((a, b) => a.precio.compareTo(b.precio));
+                } else if (_selectedSort == 'Precio: Mayor a Menor') {
+                  products.sort((a, b) => b.precio.compareTo(a.precio));
+                }
+
+                if (products.isEmpty) {
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Text(
-                        'No hay discos en esta categoría',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.album_outlined,
+                            size: 56,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _selectedCategory == 'Todos'
+                                ? 'No hay discos disponibles.'
+                                : 'No hay discos de "$_selectedCategory".',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemCount: filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final item = filteredProducts[index];
-                      return ProductCard(
-                        title: item['title'],
-                        price: item['price'],
-                        tags: item['tags'],
-                        imageUrl: item['image'],
-                        isSale: item['isSale'],
-                        onDetailsTap: () =>
-                            Navigator.pushNamed(context, '/detalle'),
-                      );
-                    },
+                  );
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 0.72,
                   ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final item = products[index];
+                    return ProductCard(
+                      title: item.nombre,
+                      price: item.precio,
+                      tags: item.categoria != null
+                          ? [item.categoria!.nombre]
+                          : [],
+                      imageUrl: item.imageUrl,
+                      isSale: item.estaActivo,
+                      onDetailsTap: () => Navigator.pushNamed(
+                        context,
+                        '/detalle-producto/${item.id}',
+                      ),
+                      onAdd: () {
+                        context.read<CartProvider>().agregarProducto(
+                          productoId: item.id,
+                          nombre: item.nombre,
+                          precio: item.precio,
+                          imagenUrl: item.imageUrl,
+                          stockDisponible: item.inventario,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Agregado al carrito')),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -209,59 +281,3 @@ class _VinylsScreenState extends State<VinylsScreen> {
     );
   }
 }
-
-final List<Map<String, dynamic>> _vinilosProducts = [
-  {
-    'title': 'Sliver - Nirvana',
-    'price': 299.99,
-    'tags': ['Rock', 'Oferta'],
-    'image':
-        'https://m.media-amazon.com/images/I/81oDljdj-FL._UF1000,1000_QL80_.jpg',
-    'isSale': true,
-  },
-  {
-    'title': 'Unplugged in New York - Nirvana',
-    'price': 999.99,
-    'tags': ['Rock', 'Grunge', 'Acustico'],
-    'image':
-        'https://m.media-amazon.com/images/I/61kVo9GKvjL._UF1000,1000_QL80_.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Highway to Hell- AC/DC',
-    'price': 942.99,
-    'tags': ['Rock', 'Alternativo'],
-    'image': 'https://m.media-amazon.com/images/I/71SKVywshEL.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Nevermind - Nirvana',
-    'price': 1049.99,
-    'tags': ['Rock', 'Grunge'],
-    'image': 'https://m.media-amazon.com/images/I/61ZhsEYnSdL.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Abbey Road - The Beatles',
-    'price': 450.00,
-    'tags': ['Rock', 'Clásico'],
-    'image': 'https://m.media-amazon.com/images/I/91YlTtiGi0L.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Kind of Blue - Miles Davis',
-    'price': 520.00,
-    'tags': ['Jazz'],
-    'image':
-        'https://m.media-amazon.com/images/I/71W8b8QzfiL._UF1000,1000_QL80_.jpg',
-    'isSale': false,
-  },
-  {
-    'title': 'Thriller - Michael Jackson',
-    'price': 380.00,
-    'tags': ['Pop'],
-    'image':
-        'https://m.media-amazon.com/images/I/81ogsUqshzL._UF1000,1000_QL80_.jpg',
-    'isSale': false,
-  },
-];

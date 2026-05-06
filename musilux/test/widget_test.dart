@@ -9,11 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:musilux/main.dart';
 
 void main() {
-  testWidgets('App loads correctly smoke test', (WidgetTester tester) async {
+  testWidgets('Renders HomeScreen smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MusiluxApp());
 
-    // Verify that our app shows the welcome text.
-    expect(find.text('Bienvenido!!!'), findsOneWidget);
+    // Verify that our counter starts at 0.
+    expect(find.text('Tu Música, Tu Estilo'), findsOneWidget);
+    expect(find.text('Equípate con lo mejor en Musilux'), findsOneWidget);
   });
 }
