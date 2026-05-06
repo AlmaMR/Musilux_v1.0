@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
@@ -90,7 +91,9 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
   }
 
   void _facturarPedido(String pedidoId) async {
-    final pedidoEncontrado = _pedidosOriginal.cast<Map<String, dynamic>?>().firstWhere(
+    final pedidoEncontrado = _pedidosOriginal
+        .cast<Map<String, dynamic>?>()
+        .firstWhere(
           (pedido) => pedido != null && pedido['id']?.toString() == pedidoId,
           orElse: () => null,
         );
@@ -114,18 +117,40 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
         build: (pw.Context context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('Factura - Pedido #$pedidoId', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Factura - Pedido #$pedidoId',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 20),
-            pw.Text('Usuario: ${pedidoEncontrado['id_usuario']?.toString() ?? 'N/A'}'),
-            pw.Text('Estado: ${pedidoEncontrado['estado']?.toString() ?? 'N/A'}'),
-            pw.Text('Subtotal: ${_formatMoney(pedidoEncontrado['subtotal'] ?? pedidoEncontrado['monto_subtotal'])}'),
-            pw.Text('Costo envío: ${_formatMoney(pedidoEncontrado['costo_envio'] ?? pedidoEncontrado['shipping_cost'])}'),
-            pw.Text('Monto total: ${_formatMoney(pedidoEncontrado['monto_total'] ?? pedidoEncontrado['total'])}'),
-            pw.Text('Dirección envío: ${pedidoEncontrado['id_direccion_envio']?.toString() ?? pedidoEncontrado['direccion_envio']?.toString() ?? 'N/A'}'),
-            pw.Text('Intento pago: ${pedidoEncontrado['id_intento_pago']?.toString() ?? 'N/A'}'),
-            pw.Text('Creado en: ${_formatDate(pedidoEncontrado['creado_en'] ?? pedidoEncontrado['created_at'])}'),
+            pw.Text(
+              'Usuario: ${pedidoEncontrado['id_usuario']?.toString() ?? 'N/A'}',
+            ),
+            pw.Text(
+              'Estado: ${pedidoEncontrado['estado']?.toString() ?? 'N/A'}',
+            ),
+            pw.Text(
+              'Subtotal: ${_formatMoney(pedidoEncontrado['subtotal'] ?? pedidoEncontrado['monto_subtotal'])}',
+            ),
+            pw.Text(
+              'Costo envío: ${_formatMoney(pedidoEncontrado['costo_envio'] ?? pedidoEncontrado['shipping_cost'])}',
+            ),
+            pw.Text(
+              'Monto total: ${_formatMoney(pedidoEncontrado['monto_total'] ?? pedidoEncontrado['total'])}',
+            ),
+            pw.Text(
+              'Dirección envío: ${pedidoEncontrado['id_direccion_envio']?.toString() ?? pedidoEncontrado['direccion_envio']?.toString() ?? 'N/A'}',
+            ),
+            pw.Text(
+              'Intento pago: ${pedidoEncontrado['id_intento_pago']?.toString() ?? 'N/A'}',
+            ),
+            pw.Text(
+              'Creado en: ${_formatDate(pedidoEncontrado['creado_en'] ?? pedidoEncontrado['created_at'])}',
+            ),
             pw.SizedBox(height: 20),
-            pw.Text('Productos:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Productos:',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
             ..._buildPdfItems(pedidoEncontrado['items'] as List<dynamic>?),
           ],
         ),
@@ -133,7 +158,10 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
     );
 
     // Compartir/descargar PDF
-    await Printing.sharePdf(bytes: await pdf.save(), filename: 'factura_pedido_$pedidoId.pdf');
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'factura_pedido_$pedidoId.pdf',
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -151,8 +179,12 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
     }
 
     return items.map((item) {
-      final nombre = item['nombre_producto']?.toString() ?? item['nombre']?.toString() ?? 'Producto desconocido';
-      final cantidad = item['cantidad']?.toString() ?? item['qty']?.toString() ?? 'N/A';
+      final nombre =
+          item['nombre_producto']?.toString() ??
+          item['nombre']?.toString() ??
+          'Producto desconocido';
+      final cantidad =
+          item['cantidad']?.toString() ?? item['qty']?.toString() ?? 'N/A';
       return pw.Text('• $nombre x $cantidad');
     }).toList();
   }
@@ -263,6 +295,34 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
     return value.toString();
   }
 
+  dynamic _getIvaValue(Map<String, dynamic> pedido) {
+    final ivaValue =
+        pedido['impuestos'] ??
+        pedido['iva'] ??
+        pedido['tax'] ??
+        pedido['taxes'];
+    if (ivaValue != null) {
+      return ivaValue;
+    }
+
+    final subtotal = double.tryParse(
+      (pedido['subtotal'] ?? pedido['monto_subtotal'])?.toString() ?? '',
+    );
+    final total = double.tryParse(
+      (pedido['monto_total'] ?? pedido['total'])?.toString() ?? '',
+    );
+    if (subtotal == null || total == null) return null;
+
+    final shipping = double.tryParse(
+      (pedido['costo_envio'] ?? pedido['shipping_cost'])?.toString() ?? '',
+    );
+    final iva = shipping != null
+        ? total - subtotal - shipping
+        : total - subtotal;
+
+    return iva.isFinite && iva >= 0 ? iva : null;
+  }
+
   DateTime? _parsePedidoDate(Map<String, dynamic> pedido) {
     final dateValue = pedido['creado_en'] ?? pedido['created_at'];
     if (dateValue == null) return null;
@@ -278,12 +338,28 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
         final fechaPedido = _parsePedidoDate(pedido);
 
         final cumpleId = criterio.isEmpty || idTexto.contains(criterio);
-        final cumpleFechaInicio = _fechaInicio == null || (fechaPedido != null && !fechaPedido.isBefore(_fechaInicio!));
-        final cumpleFechaFin = _fechaFin == null || (fechaPedido != null && !fechaPedido.isAfter(_fechaFin!));
+        final cumpleFechaInicio =
+            _fechaInicio == null ||
+            (fechaPedido != null && !fechaPedido.isBefore(_fechaInicio!));
+        final cumpleFechaFin =
+            _fechaFin == null ||
+            (fechaPedido != null && !fechaPedido.isAfter(_fechaFin!));
 
         return cumpleId && cumpleFechaInicio && cumpleFechaFin;
       }).toList();
     });
+  }
+
+  Future<void> _copiarNumeroPedido(String pedidoId) async {
+    await Clipboard.setData(ClipboardData(text: pedidoId));
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Número de pedido #$pedidoId copiado al portapapeles'),
+        backgroundColor: Colors.green.shade600,
+      ),
+    );
   }
 
   Future<void> _selectFechaInicio() async {
@@ -370,8 +446,13 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
           const SizedBox(height: 8),
           ...items.map((item) {
             final nombre =
-                item['nombre_producto']?.toString() ?? item['nombre']?.toString() ?? 'Producto desconocido';
-            final cantidad = item['cantidad']?.toString() ?? item['qty']?.toString() ?? 'N/A';
+                item['nombre_producto']?.toString() ??
+                item['nombre']?.toString() ??
+                'Producto desconocido';
+            final cantidad =
+                item['cantidad']?.toString() ??
+                item['qty']?.toString() ??
+                'N/A';
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text('• $nombre x $cantidad'),
@@ -495,8 +576,28 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
               childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               leading: const Icon(Icons.receipt_long, color: Colors.orange),
               title: Text('Pedido #$id'),
-              subtitle: Text(estado),
+              subtitle: Text(
+                '$estado · Total: ${_formatMoney(pedido['monto_total'] ?? pedido['total'])}',
+              ),
               children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Número de pedido: #$id',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy, size: 20),
+                        tooltip: 'Copiar número de pedido',
+                        onPressed: () => _copiarNumeroPedido(id),
+                      ),
+                    ],
+                  ),
+                ),
                 _buildField(
                   'Usuario',
                   pedido['id_usuario']?.toString() ?? 'N/A',
@@ -512,6 +613,7 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
                     pedido['costo_envio'] ?? pedido['shipping_cost'],
                   ),
                 ),
+                _buildField('IVA', _formatMoney(_getIvaValue(pedido))),
                 _buildField(
                   'Monto total',
                   _formatMoney(pedido['monto_total'] ?? pedido['total']),
@@ -558,6 +660,7 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
       ),
     );
   }
+
   Widget _buildFilters() {
     return Card(
       elevation: 2,
@@ -591,9 +694,11 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.date_range),
-                    label: Text(_fechaInicio == null
-                        ? 'Fecha inicio'
-                        : 'Desde: ${_fechaInicio!.toLocal().toString().split(' ').first}'),
+                    label: Text(
+                      _fechaInicio == null
+                          ? 'Fecha inicio'
+                          : 'Desde: ${_fechaInicio!.toLocal().toString().split(' ').first}',
+                    ),
                     onPressed: _selectFechaInicio,
                   ),
                 ),
@@ -601,9 +706,11 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.date_range),
-                    label: Text(_fechaFin == null
-                        ? 'Fecha fin'
-                        : 'Hasta: ${_fechaFin!.toLocal().toString().split(' ').first}'),
+                    label: Text(
+                      _fechaFin == null
+                          ? 'Fecha fin'
+                          : 'Hasta: ${_fechaFin!.toLocal().toString().split(' ').first}',
+                    ),
                     onPressed: _selectFechaFin,
                   ),
                 ),
@@ -621,4 +728,5 @@ class _PedidosDashboardState extends State<PedidosDashboard> {
         ),
       ),
     );
-  }}
+  }
+}
