@@ -16,11 +16,14 @@ import 'screens/instruments_screen.dart';
 import 'screens/vinyls_screen.dart';
 import 'screens/product_detail_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/mis_compras_screen.dart';
+import 'screens/pedido_detail_screen.dart';
 import 'screens/admin_products_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/contact_screen.dart';
 import 'screens/checkout_success_screen.dart';
 import 'screens/checkout_cancel_screen.dart';
+import 'utils/web_message_handler.dart';
 
 // Dashboards admin
 import 'screens/admin/super_admin_dashboard.dart';
@@ -62,9 +65,18 @@ void main() async {
 class MusiluxApp extends StatelessWidget {
   const MusiluxApp({super.key});
 
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
+    // Attach web message listener so other tabs/windows can instruct navigation
+    try {
+      attachMessageListener(navigatorKey);
+    } catch (_) {}
+
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Musilux',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -81,6 +93,7 @@ class MusiluxApp extends StatelessWidget {
         '/vinilos': (context) => const VinylsScreen(),
         '/contacto': (context) => const ContactScreen(),
         AppRoutes.perfil: (context) => const ProfileScreen(),
+        '/mis-compras': (context) => const MisComprasScreen(),
         '/checkout/success': (context) => const CheckoutSuccessScreen(),
         '/checkout/cancel': (context) => const CheckoutCancelScreen(),
 
@@ -123,6 +136,16 @@ class MusiluxApp extends StatelessWidget {
         if (settings.name == '/detalle-producto') {
           return MaterialPageRoute(
             builder: (context) => const ProductDetailScreen(),
+            settings: settings,
+          );
+        }
+        // detalle de pedido: /mis-compras/{id}
+        if (settings.name != null &&
+            settings.name!.startsWith('/mis-compras/')) {
+          final pedidoIdStr = settings.name!.replaceFirst('/mis-compras/', '');
+          // Permitir tanto IDs numéricos como UUIDs: pasar siempre la cadena.
+          return MaterialPageRoute(
+            builder: (context) => PedidoDetailScreen(pedidoId: pedidoIdStr),
             settings: settings,
           );
         }

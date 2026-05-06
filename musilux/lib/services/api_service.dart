@@ -6,16 +6,32 @@ import '../api_constants.dart';
 class ApiService {
   final String _baseUrl = ApiConstants.baseUrl;
 
-  Future<List<Product>> fetchProducts({String? category}) async {
-    // El backend espera el slug de la categoría, no el nombre.
-    // Ejemplo: /api/products?category=guitarras
-    String url = '$_baseUrl/products';
-    if (category != null && category.isNotEmpty) {
-      url += '?category=$category';
-    }
+  /// Fetch products with optional category, search and pagination.
+  ///
+  /// Params supported by the backend (assumed):
+  /// - category: slug or id of the category
+  /// - search: free-text search across product name/description
+  /// - page / per_page: pagination controls
+  Future<List<Product>> fetchProducts({
+    String? category,
+    String? search,
+    int? page,
+    int? perPage,
+  }) async {
+    // Build query parameters map only with non-null entries
+    final Map<String, String> queryParams = {};
+    if (category != null && category.isNotEmpty)
+      queryParams['category'] = category;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (page != null) queryParams['page'] = page.toString();
+    if (perPage != null) queryParams['per_page'] = perPage.toString();
+
+    final Uri uri = Uri.parse(
+      '$_baseUrl/products',
+    ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(uri);
 
       if (response.statusCode == 200) {
         // La API de Laravel envuelve la data en una clave "data" por defecto en los Resources.
