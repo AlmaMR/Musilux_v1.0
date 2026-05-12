@@ -19,6 +19,13 @@ class ProductListResource extends JsonResource
             'inventario' => (int) $this->inventario,
             'tipo_producto' => $this->tipo_producto,
             'esta_activo' => (bool) $this->esta_activo,
+            'bpm' => $this->bpm,
+            'descripcion' => $this->descripcion,
+            'spotify_track_id' => $this->spotify_track_id,
+            'spotify_track_name' => $this->spotify_track_name,
+            'spotify_artist_name' => $this->spotify_artist_name,
+            'spotify_preview_url' => $this->spotify_preview_url,
+            'spotify_album_image_url' => $this->spotify_album_image_url,
             'multimedia' => $this->whenLoaded('multimedia', function () {
                 return $this->multimedia->map(function ($media) {
                     return [

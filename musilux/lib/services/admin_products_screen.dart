@@ -69,7 +69,17 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   // --- FORMULARIO DE CREAR / EDITAR ---
   void _showFormDialog({Product? product}) {
-    SpotifyTrack? selectedTrack;
+    // Pre-populate con los datos de Spotify existentes para no borrarlos al editar
+    SpotifyTrack? selectedTrack = (product != null && product.spotifyTrackId != null)
+        ? SpotifyTrack(
+            id: product.spotifyTrackId!,
+            name: product.spotifyTrackName ?? '',
+            artistName: product.spotifyArtistName ?? '',
+            albumName: '',
+            previewUrl: product.spotifyPreviewUrl,
+            albumImageUrl: product.spotifyAlbumImageUrl,
+          )
+        : null;
     final isEditing = product != null;
     final formKey = GlobalKey<FormState>();
 
@@ -220,6 +230,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       const SizedBox(height: 10),
                       if (categoryValue == '3')
                         SpotifySearchWidget(
+                          initialTrack: selectedTrack,
                           onTrackSelected: (track) {
                             selectedTrack = track;
                           },
