@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../api_constants.dart';
+import '../core/app_router.dart';
 import '../services/auth_service.dart';
 import '../widgets/shared_components.dart';
 import '../theme/colors.dart';
@@ -200,17 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _cerrarSesion() async {
     await _authService.logout();
     if (!mounted) return;
-    setState(() {
-      _isAuthenticated = false;
-      _currentUser = null;
-      _isLoginView = true;
-      _errorMessage = null;
-      _correoController.clear();
-      _passwordController.clear();
-      _nombresController.clear();
-      _apellidosController.clear();
-      _misPedidosCount = null;
-    });
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
   }
 
   @override

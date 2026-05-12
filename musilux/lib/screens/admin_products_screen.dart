@@ -7,6 +7,7 @@ import '../features/catalog/data/api_service.dart';
 import '../services/youtube_service.dart';
 import '../widgets/youtube_search_widget.dart';
 import '../services/firebase_storage_service.dart';
+import '../core/app_router.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
 
@@ -49,19 +50,17 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           if (!ctx.mounted) return;
           Navigator.pop(ctx);
 
-          // Usamos el contexto del Scaffold padre (sigue montado tras cerrar el diálogo)
-          _refreshProducts();
-          if (mounted) {
+          if (!mounted) return;
+          if (success) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              AppRoutes.adminProducts,
+              (_) => false,
+            );
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  success
-                      ? product == null
-                            ? 'Producto creado correctamente'
-                            : 'Producto actualizado correctamente'
-                      : 'Error al guardar el producto. Revisa la consola.',
-                ),
-                backgroundColor: success ? Colors.green : Colors.red,
+              const SnackBar(
+                content: Text('Error al guardar el producto. Revisa la consola.'),
+                backgroundColor: Colors.red,
               ),
             );
           }
@@ -108,11 +107,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     final success = await _productService.deleteProduct(id);
     if (!mounted) return;
     if (success) {
-      _refreshProducts();
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.adminProducts,
+        (_) => false,
+      );
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Producto eliminado'),
-          backgroundColor: Colors.green,
+          content: Text('Error al eliminar el producto'),
+          backgroundColor: Colors.red,
         ),
       );
     }
