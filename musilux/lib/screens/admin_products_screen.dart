@@ -4,7 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../features/catalog/data/product_model.dart';
 import '../features/catalog/data/api_service.dart';
-import '../services/spotify_service.dart';
+import '../services/youtube_service.dart';
+import '../widgets/youtube_search_widget.dart';
 import '../services/firebase_storage_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
@@ -462,15 +463,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late TextEditingController _precioCtrl;
   late TextEditingController _invCtrl;
   late TextEditingController _bpmCtrl;
-  final TextEditingController _spotifySearchCtrl = TextEditingController();
-
   String _tipoProducto = 'fisico';
   int _idCategoria = 1;
   bool _estaActivo = true;
 
-  SpotifyTrack? _selectedTrack;
-  List<SpotifyTrack> _spotifyResults = [];
-  bool _isSearchingSpotify = false;
+  YoutubeVideo? _selectedVideo;
 
   XFile? _pickedImage;
   Uint8List? _pickedImageBytes;
@@ -478,7 +475,6 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   bool _isUploadingImage = false;
   bool _isSaving = false;
 
-  final SpotifyService _spotifyService = SpotifyService();
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -496,14 +492,12 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _estaActivo = p?.estaActivo ?? true;
     _existingImageUrl = p?.imagenUrl;
 
-    if (p?.spotifyTrackId != null) {
-      _selectedTrack = SpotifyTrack(
-        id: p!.spotifyTrackId!,
-        name: p.spotifyTrackName ?? '',
-        artistName: p.spotifyArtistName ?? '',
-        albumName: '',
-        previewUrl: p.spotifyPreviewUrl,
-        albumImageUrl: p.spotifyAlbumImageUrl,
+    if (p?.youtubeVideoId != null) {
+      _selectedVideo = YoutubeVideo(
+        videoId: p!.youtubeVideoId!,
+        title: p.youtubeTitle ?? '',
+        channel: p.youtubeChannel ?? '',
+        thumbnail: p.youtubeThumbnail,
       );
     }
   }
@@ -516,7 +510,6 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _precioCtrl.dispose();
     _invCtrl.dispose();
     _bpmCtrl.dispose();
-    _spotifySearchCtrl.dispose();
     super.dispose();
   }
 
@@ -534,27 +527,6 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         _pickedImageBytes = bytes;
         _existingImageUrl = null;
       });
-    }
-  }
-
-  Future<void> _searchSpotify() async {
-    final query = _spotifySearchCtrl.text.trim();
-    if (query.isEmpty) return;
-    setState(() {
-      _isSearchingSpotify = true;
-      _spotifyResults = [];
-    });
-    try {
-      final results = await _spotifyService.searchTracks(query);
-      if (mounted) setState(() => _spotifyResults = results);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al buscar en Spotify')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSearchingSpotify = false);
     }
   }
 
@@ -608,11 +580,10 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       bpm: int.tryParse(_bpmCtrl.text),
       estaActivo: _estaActivo,
       imagenUrl: finalImageUrl,
-      spotifyTrackId: _selectedTrack?.id,
-      spotifyTrackName: _selectedTrack?.name,
-      spotifyArtistName: _selectedTrack?.artistName,
-      spotifyPreviewUrl: _selectedTrack?.previewUrl,
-      spotifyAlbumImageUrl: _selectedTrack?.albumImageUrl,
+      youtubeVideoId: _selectedVideo?.videoId,
+      youtubeTitle: _selectedVideo?.title,
+      youtubeChannel: _selectedVideo?.channel,
+      youtubeThumbnail: _selectedVideo?.thumbnail,
     );
 
     await widget.onSave(product);
@@ -880,131 +851,12 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                         }),
                       ),
 
-                      // ── Sección: Spotify ────────────────────────────────
-                      const SizedBox(height: 20),
-                      _SectionHeader(
-                        icon: Icons.music_note_outlined,
-                        label: 'Vincular track de Spotify',
+                      // ── Sección: YouTube ─────────────────────────────────
+                      YoutubeSearchWidget(
+                        initialVideo: _selectedVideo,
+                        onVideoSelected: (v) =>
+                            setState(() => _selectedVideo = v),
                       ),
-                      const SizedBox(height: 12),
-
-                      if (_selectedTrack != null) ...[
-                        _SelectedTrackCard(
-                          track: _selectedTrack!,
-                          onRemove: () => setState(() => _selectedTrack = null),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _spotifySearchCtrl,
-                              decoration: InputDecoration(
-                                labelText: 'Buscar canción en Spotify...',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                              ),
-                              onFieldSubmitted: (_) => _searchSpotify(),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filled(
-                            icon: _isSearchingSpotify
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.search),
-                            onPressed: _isSearchingSpotify
-                                ? null
-                                : _searchSpotify,
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.primaryPurple,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      if (_spotifyResults.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          constraints: const BoxConstraints(maxHeight: 220),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade200),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              itemCount: _spotifyResults.length,
-                              separatorBuilder: (_, __) =>
-                                  const Divider(height: 1),
-                              itemBuilder: (_, i) {
-                                final track = _spotifyResults[i];
-                                final isSelected =
-                                    _selectedTrack?.id == track.id;
-                                return ListTile(
-                                  dense: true,
-                                  leading: ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: track.albumImageUrl != null
-                                        ? Image.network(
-                                            track.albumImageUrl!,
-                                            width: 40,
-                                            height: 40,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                const Icon(Icons.music_note),
-                                          )
-                                        : const Icon(Icons.music_note),
-                                  ),
-                                  title: Text(
-                                    track.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    track.artistName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  trailing: isSelected
-                                      ? const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.green,
-                                        )
-                                      : null,
-                                  tileColor: isSelected
-                                      ? Colors.green.withValues(alpha: 0.06)
-                                      : null,
-                                  onTap: () => setState(() {
-                                    _selectedTrack = track;
-                                    _spotifyResults = [];
-                                    _spotifySearchCtrl.clear();
-                                  }),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
 
                       const SizedBox(height: 24),
                     ],
@@ -1154,69 +1006,6 @@ class _StyledField extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
-        ),
-      ),
-    );
-  }
-}
-
-/// Track de Spotify seleccionado con botón para quitar.
-class _SelectedTrackCard extends StatelessWidget {
-  final SpotifyTrack track;
-  final VoidCallback onRemove;
-
-  const _SelectedTrackCard({required this.track, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.06),
-        border: Border.all(color: Colors.green.shade200),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ListTile(
-        dense: true,
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: track.albumImageUrl != null
-              ? Image.network(
-                  track.albumImageUrl!,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.music_note),
-                )
-              : const Icon(Icons.music_note, color: Colors.green),
-        ),
-        title: Text(
-          track.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          track.artistName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: SizedBox(
-          width: 56,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 16),
-              const SizedBox(width: 2),
-              InkWell(
-                onTap: onRemove,
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
-                  child: Icon(Icons.close, color: Colors.red, size: 16),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

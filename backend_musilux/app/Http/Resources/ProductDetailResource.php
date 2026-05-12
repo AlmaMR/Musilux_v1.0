@@ -21,12 +21,10 @@ class ProductDetailResource extends JsonResource
             'inventario' => (int) $this->inventario,
             'bpm' => $this->bpm,
             'esta_activo' => (bool) $this->esta_activo,
-            // Campos de Spotify
-            'spotify_track_id' => $this->spotify_track_id,
-            'spotify_track_name' => $this->spotify_track_name,
-            'spotify_artist_name' => $this->spotify_artist_name,
-            'spotify_preview_url' => $this->spotify_preview_url,
-            'spotify_album_image_url' => $this->spotify_album_image_url,
+            'youtube_video_id' => $this->youtube_video_id,
+            'youtube_title' => $this->youtube_title,
+            'youtube_channel' => $this->youtube_channel,
+            'youtube_thumbnail' => $this->youtube_thumbnail,
             'categoria' => $this->whenLoaded('category', function () {
                 return [
                     'id' => $this->category->id,

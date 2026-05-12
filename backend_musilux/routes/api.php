@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RolController;
-use App\Http\Controllers\SpotifyController;
+use App\Http\Controllers\YoutubeSearchController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\Admin\AdminPedidoController;
 use App\Http\Controllers\Admin\AdminUsuarioController;
@@ -46,9 +46,9 @@ Route::get('/products/{id}',          [ProductController::class, 'show']);
 Route::get('/products/{id}/related',  [ProductController::class, 'related']);
 
 // ──────────────────────────────────────────────
-// Spotify (público — backend actúa de proxy)
+// YouTube (público — backend actúa de proxy)
 // ──────────────────────────────────────────────
-Route::get('/spotify/search', [SpotifyController::class, 'search']);
+Route::get('/youtube/search', [YoutubeSearchController::class, 'search']);
 
 // ──────────────────────────────────────────────
 // Rutas autenticadas

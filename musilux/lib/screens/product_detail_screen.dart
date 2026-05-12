@@ -6,8 +6,7 @@ import 'package:musilux/services/api_service.dart';
 import '../providers/cart_provider.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String? productId;
@@ -561,9 +560,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ],
         const SizedBox(height: 24),
 
-        // Demos según tipo: Spotify tiene prioridad si hay track asociado
-        if (product.spotifyTrackId != null)
-          _SpotifyPreviewPlayer(product: product)
+        // Player de YouTube si hay video asociado
+        if (product.youtubeVideoId != null)
+          _YoutubeAudioPlayer(product: product)
         else if (product.tipoProducto == 'digital')
           _buildAudioDemo(),
         if (product.tipoProducto == 'servicio') _buildLightingDemo(),
@@ -771,103 +770,69 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 }
 
-// ── Spotify Preview Player ─────────────────────────────────────
+// ── YouTube Player ─────────────────────────────────────────────
 
-class _SpotifyPreviewPlayer extends StatefulWidget {
+class _YoutubeAudioPlayer extends StatefulWidget {
   final Product product;
-  const _SpotifyPreviewPlayer({required this.product});
+  const _YoutubeAudioPlayer({required this.product});
 
   @override
-  State<_SpotifyPreviewPlayer> createState() => _SpotifyPreviewPlayerState();
+  State<_YoutubeAudioPlayer> createState() => _YoutubeAudioPlayerState();
 }
 
-class _SpotifyPreviewPlayerState extends State<_SpotifyPreviewPlayer> {
-  late final AudioPlayer _player;
-  bool _isPlaying = false;
-  Duration _position = Duration.zero;
-  static const Duration _total = Duration(seconds: 30);
+class _YoutubeAudioPlayerState extends State<_YoutubeAudioPlayer> {
+  YoutubePlayerController? _controller;
+  bool _playerVisible = false;
 
-  bool get _hasPreview => widget.product.spotifyPreviewUrl != null;
+  static const _ytRed = Color(0xFFFF0000);
 
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer();
-    _player.onPositionChanged.listen((pos) {
-      if (!mounted) return;
-      setState(() => _position = pos > _total ? _total : pos);
-    });
-    _player.onPlayerComplete.listen((_) {
-      if (!mounted) return;
-      setState(() {
-        _isPlaying = false;
-        _position = Duration.zero;
-      });
-    });
+    final videoId = widget.product.youtubeVideoId;
+    if (videoId != null) {
+      _controller = YoutubePlayerController.fromVideoId(
+        videoId: videoId,
+        autoPlay: false,
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+          mute: false,
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    _controller?.close();
     super.dispose();
-  }
-
-  Future<void> _toggle() async {
-    if (!_hasPreview) return;
-    if (_isPlaying) {
-      await _player.pause();
-      setState(() => _isPlaying = false);
-    } else {
-      if (_position == Duration.zero) {
-        await _player.play(UrlSource(widget.product.spotifyPreviewUrl!));
-      } else {
-        await _player.resume();
-      }
-      setState(() => _isPlaying = true);
-    }
-  }
-
-  Future<void> _openInSpotify() async {
-    final trackId = widget.product.spotifyTrackId;
-    if (trackId == null) return;
-    final uri = Uri.parse('https://open.spotify.com/track/$trackId');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
   }
 
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
     final isMobile = MediaQuery.of(context).size.width < 800;
-    final progress = (_position.inMilliseconds / _total.inMilliseconds)
-        .clamp(0.0, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Encabezado
+        const Divider(height: 24),
         Row(
           children: [
             Container(
               width: 20,
               height: 20,
               decoration: const BoxDecoration(
-                color: Color(0xFF1DB954),
+                color: _ytRed,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.music_note, size: 12, color: Colors.white),
+              child: const Icon(Icons.play_arrow, size: 12, color: Colors.white),
             ),
             const SizedBox(width: 8),
-            Text(
-              _hasPreview ? 'Preview de la canción' : 'Canción asociada',
-              style: const TextStyle(
+            const Text(
+              'Video de la canción',
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -876,222 +841,108 @@ class _SpotifyPreviewPlayerState extends State<_SpotifyPreviewPlayer> {
           ],
         ),
         const SizedBox(height: 12),
-
-        // Tarjeta del reproductor
         Container(
-          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
-            color: const Color(0xFF121212),
+            color: const Color(0xFF0F0F0F),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Column(
-            children: [
-              // Fila superior: carátula + info + botón
-              Row(
-                children: [
-                  // Carátula del álbum
-                  if (p.spotifyAlbumImageUrl != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: p.spotifyAlbumImageUrl!,
-                        width: isMobile ? 52 : 64,
-                        height: isMobile ? 52 : 64,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 192,
-                        memCacheHeight: 192,
-                        placeholder: (_, _) => Container(
-                          width: isMobile ? 52 : 64,
-                          height: isMobile ? 52 : 64,
-                          color: const Color(0xFF282828),
-                        ),
-                        errorWidget: (_, _, _) => Container(
-                          width: isMobile ? 52 : 64,
-                          height: isMobile ? 52 : 64,
-                          color: const Color(0xFF282828),
-                          child: const Icon(Icons.album, color: Color(0xFF535353)),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: isMobile ? 52 : 64,
-                      height: isMobile ? 52 : 64,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF282828),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.album, color: Color(0xFF535353)),
-                    ),
-
-                  SizedBox(width: isMobile ? 10 : 14),
-
-                  // Nombre de canción y artista
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          p.spotifyTrackName ?? '',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: isMobile ? 13 : 15,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          p.spotifyArtistName ?? '',
-                          style: const TextStyle(
-                            color: Color(0xFFB3B3B3),
-                            fontSize: 12,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1DB954).withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            _hasPreview ? 'Preview 30s' : 'Spotify',
-                            style: const TextStyle(
-                              color: Color(0xFF1DB954),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Botón: play/pause si hay preview, o abrir Spotify si no
-                  GestureDetector(
-                    onTap: _hasPreview ? _toggle : _openInSpotify,
-                    child: Container(
-                      width: isMobile ? 44 : 52,
-                      height: isMobile ? 44 : 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1DB954),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF1DB954).withValues(alpha: 0.35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _hasPreview
-                            ? (_isPlaying
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded)
-                            : Icons.open_in_new_rounded,
-                        color: Colors.black,
-                        size: isMobile ? 24 : 28,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Barra de progreso — solo si hay preview
-              if (_hasPreview) ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Text(
-                      _fmt(_position),
-                      style: const TextStyle(
-                        color: Color(0xFFB3B3B3),
-                        fontSize: 11,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: const Color(0xFF3E3E3E),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _isPlaying
-                                ? const Color(0xFF1DB954)
-                                : const Color(0xFF535353),
-                          ),
-                          minHeight: isMobile ? 3 : 4,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _fmt(_total),
-                      style: const TextStyle(
-                        color: Color(0xFFB3B3B3),
-                        fontSize: 11,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              // Mensaje si no hay preview
-              if (!_hasPreview) ...[
-                const SizedBox(height: 10),
-                const Text(
-                  'Preview no disponible en esta región. Toca para abrir en Spotify.',
-                  style: TextStyle(
-                    color: Color(0xFF535353),
-                    fontSize: 11,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-
-              const SizedBox(height: 10),
-
-              // Branding Spotify
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1DB954),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.music_note, size: 9, color: Colors.white),
-                  ),
-                  const SizedBox(width: 5),
-                  const Text(
-                    'Spotify',
-                    style: TextStyle(
-                      color: Color(0xFF1DB954),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          clipBehavior: Clip.antiAlias,
+          child: _playerVisible && _controller != null
+              ? YoutubePlayerScaffold(
+                  controller: _controller!,
+                  builder: (context, player) => player,
+                )
+              : _buildThumbnail(p, isMobile),
         ),
       ],
+    );
+  }
+
+  Widget _buildThumbnail(Product p, bool isMobile) {
+    final h = isMobile ? 200.0 : 260.0;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _playerVisible = true);
+        _controller?.playVideo();
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (p.youtubeThumbnail != null)
+            CachedNetworkImage(
+              imageUrl: p.youtubeThumbnail!,
+              width: double.infinity,
+              height: h,
+              fit: BoxFit.cover,
+              placeholder: (ctx, url) => Container(height: h, color: const Color(0xFF282828)),
+              errorWidget: (ctx, url, err) => Container(
+                height: h,
+                color: const Color(0xFF282828),
+                child: const Icon(Icons.play_circle_outline, color: Colors.white54, size: 48),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              height: h,
+              color: const Color(0xFF282828),
+              child: const Icon(Icons.play_circle_outline, color: Colors.white54, size: 48),
+            ),
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: _ytRed,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: _ytRed.withValues(alpha: 0.5),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 36),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 32, 12, 12),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Color(0xDD000000), Colors.transparent],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (p.youtubeTitle != null)
+                    Text(
+                      p.youtubeTitle!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  if (p.youtubeChannel != null)
+                    Text(
+                      p.youtubeChannel!,
+                      style: const TextStyle(color: Color(0xFFB3B3B3), fontSize: 11),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

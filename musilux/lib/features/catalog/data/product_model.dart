@@ -11,12 +11,10 @@ class ProductModel {
   final bool estaActivo;
   // URL de imagen principal (Firebase Storage o externa)
   final String? imagenUrl;
-  // Campos de integración Spotify
-  final String? spotifyTrackId;
-  final String? spotifyTrackName;
-  final String? spotifyArtistName;
-  final String? spotifyPreviewUrl;
-  final String? spotifyAlbumImageUrl;
+  final String? youtubeVideoId;
+  final String? youtubeTitle;
+  final String? youtubeChannel;
+  final String? youtubeThumbnail;
 
   ProductModel({
     this.id,
@@ -30,11 +28,10 @@ class ProductModel {
     this.bpm,
     this.estaActivo = true,
     this.imagenUrl,
-    this.spotifyTrackId,
-    this.spotifyTrackName,
-    this.spotifyArtistName,
-    this.spotifyPreviewUrl,
-    this.spotifyAlbumImageUrl,
+    this.youtubeVideoId,
+    this.youtubeTitle,
+    this.youtubeChannel,
+    this.youtubeThumbnail,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -61,11 +58,10 @@ class ProductModel {
       bpm: json['bpm'] != null ? int.tryParse(json['bpm'].toString()) : null,
       estaActivo: json['esta_activo'] == 1 || json['esta_activo'] == true,
       imagenUrl: imagenUrl,
-      spotifyTrackId: json['spotify_track_id']?.toString(),
-      spotifyTrackName: json['spotify_track_name']?.toString(),
-      spotifyArtistName: json['spotify_artist_name']?.toString(),
-      spotifyPreviewUrl: json['spotify_preview_url']?.toString(),
-      spotifyAlbumImageUrl: json['spotify_album_image_url']?.toString(),
+      youtubeVideoId: json['youtube_video_id']?.toString(),
+      youtubeTitle: json['youtube_title']?.toString(),
+      youtubeChannel: json['youtube_channel']?.toString(),
+      youtubeThumbnail: json['youtube_thumbnail']?.toString(),
     );
   }
 
@@ -82,11 +78,10 @@ class ProductModel {
       'bpm': bpm,
       'esta_activo': estaActivo,
       if (imagenUrl != null) 'imagen_url': imagenUrl,
-      'spotify_track_id': spotifyTrackId,
-      'spotify_track_name': spotifyTrackName,
-      'spotify_artist_name': spotifyArtistName,
-      'spotify_preview_url': spotifyPreviewUrl,
-      'spotify_album_image_url': spotifyAlbumImageUrl,
+      'youtube_video_id': youtubeVideoId,
+      'youtube_title': youtubeTitle,
+      'youtube_channel': youtubeChannel,
+      'youtube_thumbnail': youtubeThumbnail,
     };
   }
 }

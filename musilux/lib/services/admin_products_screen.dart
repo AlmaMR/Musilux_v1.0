@@ -3,8 +3,8 @@ import '../models/product.dart';
 import '../services/api_service.dart';
 import '../theme/colors.dart';
 import '../widgets/shared_components.dart';
-import '../services/spotify_service.dart';
-import '../widgets/spotify_search_widget.dart';
+import '../services/youtube_service.dart';
+import '../widgets/youtube_search_widget.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -69,15 +69,12 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   // --- FORMULARIO DE CREAR / EDITAR ---
   void _showFormDialog({Product? product}) {
-    // Pre-populate con los datos de Spotify existentes para no borrarlos al editar
-    SpotifyTrack? selectedTrack = (product != null && product.spotifyTrackId != null)
-        ? SpotifyTrack(
-            id: product.spotifyTrackId!,
-            name: product.spotifyTrackName ?? '',
-            artistName: product.spotifyArtistName ?? '',
-            albumName: '',
-            previewUrl: product.spotifyPreviewUrl,
-            albumImageUrl: product.spotifyAlbumImageUrl,
+    YoutubeVideo? selectedTrack = (product != null && product.youtubeVideoId != null)
+        ? YoutubeVideo(
+            videoId: product.youtubeVideoId!,
+            title: product.youtubeTitle ?? '',
+            channel: product.youtubeChannel ?? '',
+            thumbnail: product.youtubeThumbnail,
           )
         : null;
     final isEditing = product != null;
@@ -229,10 +226,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       ),
                       const SizedBox(height: 10),
                       if (categoryValue == '3')
-                        SpotifySearchWidget(
-                          initialTrack: selectedTrack,
-                          onTrackSelected: (track) {
-                            selectedTrack = track;
+                        YoutubeSearchWidget(
+                          initialVideo: selectedTrack,
+                          onVideoSelected: (v) {
+                            selectedTrack = v;
                           },
                         ),
                     ],
@@ -267,11 +264,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   estaActivo: true, // Activo por defecto
                   idCategoria: categoryValue,
                   bpm: int.tryParse(bpmCtrl.text),
-                  spotifyTrackId: selectedTrack?.id,
-                  spotifyTrackName: selectedTrack?.name,
-                  spotifyArtistName: selectedTrack?.artistName,
-                  spotifyPreviewUrl: selectedTrack?.previewUrl,
-                  spotifyAlbumImageUrl: selectedTrack?.albumImageUrl,
+                  youtubeVideoId: selectedTrack?.videoId,
+                  youtubeTitle: selectedTrack?.title,
+                  youtubeChannel: selectedTrack?.channel,
+                  youtubeThumbnail: selectedTrack?.thumbnail,
                   // Nota: la subida de imágenes requiere un multipart request al backend, por el momento se omitió en el modelo directo.
                 );
 
