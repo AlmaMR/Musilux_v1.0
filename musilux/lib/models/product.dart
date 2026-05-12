@@ -65,11 +65,10 @@ class Product {
   final List<ProductMedia> multimedia;
   final ProductCategory? categoria;
   final List<ProductTag> etiquetas;
-  final String? spotifyTrackId;
-  final String? spotifyTrackName;
-  final String? spotifyArtistName;
-  final String? spotifyPreviewUrl;
-  final String? spotifyAlbumImageUrl;
+  final String? youtubeVideoId;
+  final String? youtubeTitle;
+  final String? youtubeChannel;
+  final String? youtubeThumbnail;
 
   Product({
     required this.id,
@@ -85,11 +84,10 @@ class Product {
     this.multimedia = const [],
     this.categoria,
     this.etiquetas = const [],
-    this.spotifyTrackId,
-    this.spotifyTrackName,
-    this.spotifyArtistName,
-    this.spotifyPreviewUrl,
-    this.spotifyAlbumImageUrl,
+    this.youtubeVideoId,
+    this.youtubeTitle,
+    this.youtubeChannel,
+    this.youtubeThumbnail,
   });
 
   // Retorna la URL de la imagen principal o un placeholder si no hay multimedia.
@@ -133,11 +131,10 @@ class Product {
               .map((i) => ProductTag.fromJson(i))
               .toList()
           : [],
-      spotifyTrackId: json['spotify_track_id']?.toString(),
-      spotifyTrackName: json['spotify_track_name']?.toString(),
-      spotifyArtistName: json['spotify_artist_name']?.toString(),
-      spotifyPreviewUrl: json['spotify_preview_url']?.toString(),
-      spotifyAlbumImageUrl: json['spotify_album_image_url']?.toString(),
+      youtubeVideoId: json['youtube_video_id']?.toString(),
+      youtubeTitle: json['youtube_title']?.toString(),
+      youtubeChannel: json['youtube_channel']?.toString(),
+      youtubeThumbnail: json['youtube_thumbnail']?.toString(),
     );
   }
 
@@ -151,11 +148,10 @@ class Product {
       'tipo_producto': tipoProducto,
       'bpm': bpm,
       'esta_activo': estaActivo,
-      'spotify_track_id': spotifyTrackId,
-      'spotify_track_name': spotifyTrackName,
-      'spotify_artist_name': spotifyArtistName,
-      'spotify_preview_url': spotifyPreviewUrl,
-      'spotify_album_image_url': spotifyAlbumImageUrl,
+      'youtube_video_id': youtubeVideoId,
+      'youtube_title': youtubeTitle,
+      'youtube_channel': youtubeChannel,
+      'youtube_thumbnail': youtubeThumbnail,
     };
   }
 }

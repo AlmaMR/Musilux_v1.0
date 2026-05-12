@@ -21,11 +21,10 @@ class ProductListResource extends JsonResource
             'esta_activo' => (bool) $this->esta_activo,
             'bpm' => $this->bpm,
             'descripcion' => $this->descripcion,
-            'spotify_track_id' => $this->spotify_track_id,
-            'spotify_track_name' => $this->spotify_track_name,
-            'spotify_artist_name' => $this->spotify_artist_name,
-            'spotify_preview_url' => $this->spotify_preview_url,
-            'spotify_album_image_url' => $this->spotify_album_image_url,
+            'youtube_video_id' => $this->youtube_video_id,
+            'youtube_title' => $this->youtube_title,
+            'youtube_channel' => $this->youtube_channel,
+            'youtube_thumbnail' => $this->youtube_thumbnail,
             'multimedia' => $this->whenLoaded('multimedia', function () {
                 return $this->multimedia->map(function ($media) {
                     return [
