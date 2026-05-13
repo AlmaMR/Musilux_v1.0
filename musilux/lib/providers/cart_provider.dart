@@ -1,8 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-// Web-only: usamos storage events para sincronizar carrito entre pestañas
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/cart_item.dart';
 
@@ -65,20 +62,6 @@ class CartProvider extends ChangeNotifier {
       await prefs.remove(_kCartKey);
     }
 
-    // Escuchar cambios en localStorage desde otras pestañas (sólo web)
-    if (kIsWeb) {
-      try {
-        html.window.onStorage.listen((html.StorageEvent e) {
-          if (e.key == 'cart_cleared') {
-            _items.clear();
-            _persistir();
-            notifyListeners();
-          }
-        });
-      } catch (_) {
-        // no-op
-      }
-    }
   }
 
   // ── Operación 1: Añadir producto ───────────────────────────────────────────

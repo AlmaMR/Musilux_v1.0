@@ -1,17 +1,17 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
-  /// IP de la máquina de desarrollo en la red local.
-  /// Cámbiala si tu IP cambia (ver con `ipconfig` en Windows).
+  // URL de producción en Railway — reemplazar con la URL real tras el deploy
+  static const String _prodUrl = 'https://TU-PROYECTO.up.railway.app/api';
+
+  // IP local para desarrollo (flutter run en debug)
   static const String _devIp = '10.11.5.71';
   static const int _devPort = 8080;
 
   static String get baseUrl {
-    if (kIsWeb) {
-      // Web corre en el mismo host, localhost funciona
-      return 'http://localhost:$_devPort/api';
-    }
-    // Dispositivo físico Y emulador usan la IP real de la PC
+    // kDebugMode es false en release/profile → apunta a producción
+    if (!kDebugMode) return _prodUrl;
+    if (kIsWeb) return 'http://localhost:$_devPort/api';
     return 'http://$_devIp:$_devPort/api';
   }
 
