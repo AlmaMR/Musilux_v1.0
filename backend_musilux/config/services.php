@@ -39,6 +39,10 @@ return [
         'client_secret' => env('SPOTIFY_CLIENT_SECRET'),
     ],
 
+    'youtube' => [
+        'api_key' => env('YOUTUBE_API_KEY'),
+    ],
+
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
     ],
