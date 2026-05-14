@@ -1,9 +1,9 @@
 name: Pruebas CI Automatizadas
 on:
   push:
-    branches: [ alma, adanDeveloper, main, master ]
+    branches: [ adanDeveloper]
   pull_request:
-    branches: [ alma, adanDeveloper, main, master ]
+    branches: [ adanDeveloper]
   workflow_dispatch: # Permite ejecutar manualmente desde GitHub
 
 jobs:
