@@ -144,7 +144,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Formatea los datos del usuario para la respuesta JSON.
+     * Formatea los datos del usuario para la respuesta JSON prueba 5.
      */
     private function formatUser(User $user): array
     {
