@@ -1,9 +1,9 @@
 name: Pruebas CI Automatizadas
 on:
   push:
-    branches: [ alma, adanDeveloper, main, master ]
+    branches: [adanDeveloper]
   pull_request:
-    branches: [ alma, adanDeveloper, main, master ]
+    branches: [adanDeveloper]
   workflow_dispatch: # Permite ejecutar manualmente desde GitHub
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v4
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mbstring,intl,pdo,pdo_sqlite,openssl,curl,json,xml,zip,gd
